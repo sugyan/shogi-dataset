@@ -20,10 +20,18 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func renderTemplate(w http.ResponseWriter, templateFile string, data interface{}) error {
+func renderTemplate(w http.ResponseWriter, templateFile string, data map[string]interface{}) error {
 	t, err := template.ParseFiles("templates/layout.html", "templates/"+templateFile)
 	if err != nil {
 		return err
+	}
+	if data == nil {
+		data = make(map[string]interface{})
+	}
+	if appengine.IsDevAppServer() {
+		data["js"] = "http://localhost:8081"
+	} else {
+		data["js"] = "/static/js"
 	}
 	w.Header().Set("Content-Type", "text/html")
 	return t.Execute(w, data)
