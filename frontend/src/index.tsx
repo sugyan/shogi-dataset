@@ -1,11 +1,8 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
+import { App } from "./app";
+
 window.addEventListener("DOMContentLoaded", () => {
-    ReactDOM.render(
-        <div>
-            <p>Hello, world!</p>
-        </div>,
-        document.getElementById("main"),
-    );
+    ReactDOM.render(<App />, document.getElementById("main"));
 });
