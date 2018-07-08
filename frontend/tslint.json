@@ -4,8 +4,6 @@
         "tslint:recommended"
     ],
     "jsRules": {},
-    "rules": {
-        "member-access": [true, "no-public"]
-    },
+    "rules": {},
     "rulesDirectory": []
 }

@@ -4,13 +4,13 @@ import { Canvas } from "./components/canvas";
 import { Navbar } from "./components/navbar";
 
 export class App extends React.Component<{}, {}> {
-    render() {
+    public render() {
         return (
             <div>
               <Navbar />
               <div className="container">
                 <div className="row">
-                  <div className="col-6">
+                  <div className="col-8">
                     <Canvas />
                   </div>
                 </div>
