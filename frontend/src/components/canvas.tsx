@@ -21,6 +21,7 @@ export class Canvas extends React.Component<{}, {}> {
         this.canvas.current.addEventListener("mousedown", this.onMouseDown.bind(this));
         this.canvas.current.addEventListener("mousemove", this.onMouseMove.bind(this));
         this.canvas.current.addEventListener("mouseup",   this.onMouseUp.bind(this));
+        this.canvas.current.addEventListener("mouseout",  this.onMouseUp.bind(this));
         this.loadImage();
     }
     public render(): React.ReactNode {
