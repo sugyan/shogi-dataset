@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export class Navbar extends React.Component<{}, {}> {
+export class Navbar extends React.Component<any> {
     public render() {
         return (
             <nav className="navbar navbar-expand-lg navbar-light bg-light">
