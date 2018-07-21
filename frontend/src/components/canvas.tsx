@@ -49,7 +49,6 @@ export class Canvas extends React.Component<any> {
             this.onLoadImage(x, y);
         };
         // TODO
-        img.src = "http://localhost:8080/static/img/20161108211226.jpg"
     }
     private draw(): void {
         this.ctx!.putImageData(this.imageData!, 0, 0);

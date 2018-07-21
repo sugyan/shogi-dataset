@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { Canvas } from "./components/canvas";
 import { Navbar } from "./components/navbar";
+import { Perspective } from "./components/perspective";
 
 export class App extends React.Component<{}, {}> {
     public render() {
@@ -12,6 +13,9 @@ export class App extends React.Component<{}, {}> {
                 <div className="row">
                   <div className="col-8">
                     <Canvas />
+                  </div>
+                  <div className="col-4">
+                    <Perspective />
                   </div>
                 </div>
               </div>
