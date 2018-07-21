@@ -1,29 +1,35 @@
 import * as React from "react";
 
+interface IProps {
+    size: number;
+}
+
 interface Ipoint {
     x: number;
     y: number;
 }
 
-export class Canvas extends React.Component<any> {
+export class Canvas extends React.Component<IProps> {
     private canvas: React.RefObject<HTMLCanvasElement>;
     private ctx?: CanvasRenderingContext2D;
-    private size: number = 1024;
     private points: Ipoint[] = [];
     private drag: number = -1;
     private imageData?: ImageData;
+
     constructor(props: any) {
         super(props);
         this.canvas = React.createRef<HTMLCanvasElement>();
     }
-    public componentDidMount(): void {
-        this.canvas.current!.height = this.canvas.current!.width = this.size;
-        this.canvas.current!.addEventListener("mousedown", this.onMouseDown.bind(this));
-        this.canvas.current!.addEventListener("mousemove", this.onMouseMove.bind(this));
-        this.canvas.current!.addEventListener("mouseup",   this.onMouseUp.bind(this));
-        this.canvas.current!.addEventListener("mouseout",  this.onMouseUp.bind(this));
 
-        this.ctx = this.canvas.current!.getContext("2d")!;
+    public componentDidMount(): void {
+        const { size } = this.props;
+        const canvas: HTMLCanvasElement = this.canvas.current!;
+        canvas.height = canvas.width = size;
+        canvas.addEventListener("mousedown", this.onMouseDown.bind(this));
+        canvas.addEventListener("mousemove", this.onMouseMove.bind(this));
+        canvas.addEventListener("mouseup",   this.onMouseUp.bind(this));
+
+        this.ctx = canvas.getContext("2d")!;
         this.loadImage();
     }
     public render(): React.ReactNode {
@@ -34,18 +40,20 @@ export class Canvas extends React.Component<any> {
             </div>
         );
     }
+
     private loadImage(): void {
+        const { size } = this.props;
         this.ctx!.fillStyle = "lightgray";
-        this.ctx!.fillRect(0, 0, this.size, this.size);
+        this.ctx!.fillRect(0, 0, size, size);
 
         const img: HTMLImageElement = new Image();
         img.onload = (ev: Event) => {
             const [h, w] = [img.height, img.width];
-            const scale: number = Math.max(h / this.size, w / this.size);
-            const x: number = (this.size - w / scale) / 2.0;
-            const y: number = (this.size - h / scale) / 2.0;
+            const scale: number = Math.max(h / size, w / size);
+            const x: number = (size - w / scale) / 2.0;
+            const y: number = (size - h / scale) / 2.0;
             this.ctx!.drawImage(img, x, y, w / scale, h / scale);
-            this.imageData = this.ctx!.getImageData(0, 0, this.size, this.size);
+            this.imageData = this.ctx!.getImageData(0, 0, size, size);
             this.onLoadImage(x, y);
         };
         // TODO
@@ -71,8 +79,9 @@ export class Canvas extends React.Component<any> {
         });
     }
     private onLoadImage(offsetX: number, offsetY: number): void {
-        const w: number = this.size - offsetX * 2.0;
-        const h: number = this.size - offsetY * 2.0;
+        const { size } = this.props;
+        const w: number = size - offsetX * 2.0;
+        const h: number = size - offsetY * 2.0;
         this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((e): Ipoint => {
             const x: number = offsetX + e[0] * w;
             const y: number = offsetY + e[1] * h;
@@ -81,12 +90,7 @@ export class Canvas extends React.Component<any> {
         this.draw();
     }
     private onMouseDown(ev: MouseEvent): void {
-        const rect: ClientRect = this.canvas.current!.getBoundingClientRect();
-        const scale: number = Math.max(this.size / rect.width, this.size / rect.height);
-        const target: Ipoint = {
-            x: (ev.clientX - rect.left) * scale,
-            y: (ev.clientY - rect.top) * scale,
-        };
+        const target: Ipoint = this.calcMousePoint(ev);
         this.drag = this.points.findIndex((p: Ipoint): boolean => {
             return Math.sqrt((target.x - p.x) ** 2 + (target.y - p.y) ** 2) < 10.0;
         });
@@ -95,16 +99,19 @@ export class Canvas extends React.Component<any> {
         if (this.drag === -1) {
             return;
         }
-        const rect: ClientRect = this.canvas.current!.getBoundingClientRect();
-        const scale: number = Math.max(this.size / rect.width, this.size / rect.height);
-        const target: Ipoint = {
-            x: (ev.clientX - rect.left) * scale,
-            y: (ev.clientY - rect.top) * scale,
-        };
-        this.points[this.drag] = target;
+        this.points[this.drag] = this.calcMousePoint(ev);
         this.draw();
     }
     private onMouseUp(ev: Event): void {
         this.drag = -1;
+    }
+    private calcMousePoint(ev: MouseEvent): Ipoint {
+        const { size } = this.props;
+        const rect: ClientRect = this.canvas.current!.getBoundingClientRect();
+        const scale: number = Math.max(size / rect.width, size / rect.height);
+        return {
+            x: (ev.clientX - rect.left) * scale,
+            y: (ev.clientY - rect.top) * scale,
+        };
     }
 }

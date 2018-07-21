@@ -12,7 +12,7 @@ export class App extends React.Component<{}, {}> {
               <div className="container">
                 <div className="row">
                   <div className="col-8">
-                    <Canvas />
+                    <Canvas size={1024} />
                   </div>
                   <div className="col-4">
                     <Perspective />

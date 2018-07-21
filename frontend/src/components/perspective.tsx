@@ -28,9 +28,7 @@ export class Perspective extends React.Component {
     }
     public render(): React.ReactNode {
         return (
-            <div>
-              <div ref={this.container} />
-            </div>
+            <div ref={this.container} />
         );
     }
 }
