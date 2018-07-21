@@ -1,15 +1,25 @@
 import * as React from "react";
+import { connect } from "react-redux";
+import { Dispatch } from "redux";
 
-interface IProps {
+import { Action, updatePointAction } from "../redux/actions";
+
+interface Iprops {
     size: number;
 }
+
+interface IdispatchProps {
+    updatePoints: (points: number[]) => Action;
+}
+
+type Props = Iprops & IdispatchProps;
 
 interface Ipoint {
     x: number;
     y: number;
 }
 
-export class Canvas extends React.Component<IProps> {
+class Canvas extends React.Component<Props> {
     private canvas: React.RefObject<HTMLCanvasElement>;
     private ctx?: CanvasRenderingContext2D;
     private points: Ipoint[] = [];
@@ -20,7 +30,6 @@ export class Canvas extends React.Component<IProps> {
         super(props);
         this.canvas = React.createRef<HTMLCanvasElement>();
     }
-
     public componentDidMount(): void {
         const { size } = this.props;
         const canvas: HTMLCanvasElement = this.canvas.current!;
@@ -40,7 +49,6 @@ export class Canvas extends React.Component<IProps> {
             </div>
         );
     }
-
     private loadImage(): void {
         const { size } = this.props;
         this.ctx!.fillStyle = "lightgray";
@@ -96,10 +104,14 @@ export class Canvas extends React.Component<IProps> {
         });
     }
     private onMouseMove(ev: MouseEvent): void {
+        const { updatePoints } = this.props;
         if (this.drag === -1) {
             return;
         }
         this.points[this.drag] = this.calcMousePoint(ev);
+        updatePoints(this.points
+            .map((p: Ipoint) => [p.x, p.y])
+            .reduce((prev, curr) => prev.concat(curr), []));
         this.draw();
     }
     private onMouseUp(ev: Event): void {
@@ -115,3 +127,12 @@ export class Canvas extends React.Component<IProps> {
         };
     }
 }
+
+export default connect<{}, IdispatchProps>(
+    (state) => state,
+    (dispatch: Dispatch<Action>): IdispatchProps => {
+        return {
+            updatePoints: (points: number[]) => dispatch(updatePointAction(points)),
+        };
+    },
+)(Canvas);

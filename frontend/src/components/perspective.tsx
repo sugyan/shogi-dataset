@@ -1,8 +1,16 @@
 import * as fx from "glfx";
 import * as React from "react";
+import { connect } from "react-redux";
 
-export class Perspective extends React.Component {
+interface IstateProps {
+    points: number[];
+}
+
+type Props = IstateProps;
+
+class Perspective extends React.Component<Props> {
     private container: React.RefObject<HTMLDivElement>;
+
     constructor(props: any) {
         super(props);
         this.container = React.createRef<HTMLDivElement>();
@@ -27,8 +35,19 @@ export class Perspective extends React.Component {
         // TODO
     }
     public render(): React.ReactNode {
+        const { points } = this.props;
+        window.console.log(points);
         return (
             <div ref={this.container} />
         );
     }
 }
+
+export default connect<IstateProps>(
+    // TODO
+    (state: any): IstateProps => {
+        return {
+            points: state.points,
+        };
+    },
+)(Perspective);
