@@ -23,10 +23,11 @@ interface Ipoint {
 class Canvas extends React.Component<Props> {
     private canvas: React.RefObject<HTMLCanvasElement>;
     private ctx?: CanvasRenderingContext2D;
+    private offsetX: number = 0;
+    private offsetY: number = 0;
     private points: Ipoint[] = [];
     private drag: number = -1;
     private imageData?: ImageData;
-
     constructor(props: any) {
         super(props);
         this.canvas = React.createRef<HTMLCanvasElement>();
@@ -59,11 +60,11 @@ class Canvas extends React.Component<Props> {
         img.onload = (ev: Event) => {
             const [h, w] = [img.height, img.width];
             const scale: number = Math.max(h / size, w / size);
-            const x: number = (size - w / scale) / 2.0;
-            const y: number = (size - h / scale) / 2.0;
-            this.ctx!.drawImage(img, x, y, w / scale, h / scale);
+            this.offsetX = (size - w / scale) / 2.0;
+            this.offsetY = (size - h / scale) / 2.0;
+            this.ctx!.drawImage(img, this.offsetX, this.offsetY, w / scale, h / scale);
             this.imageData = this.ctx!.getImageData(0, 0, size, size);
-            this.onLoadImage(x, y);
+            this.onLoadImage();
 
             const imageCanvas: HTMLCanvasElement = document.createElement("canvas");
             imageCanvas.width = img.width;
@@ -93,13 +94,27 @@ class Canvas extends React.Component<Props> {
             this.ctx!.stroke();
         });
     }
-    private onLoadImage(offsetX: number, offsetY: number): void {
-        const { size } = this.props;
-        const w: number = size - offsetX * 2.0;
-        const h: number = size - offsetY * 2.0;
-        this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((e): Ipoint => {
-            const x: number = offsetX + e[0] * w;
-            const y: number = offsetY + e[1] * h;
+    private onLoadImage(): void {
+        const { size, updatePoints } = this.props;
+        const w: number = size - this.offsetX * 2.0;
+        const h: number = size - this.offsetY * 2.0;
+        // this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((e): Ipoint => {
+        // FIXME: for DEMO
+        const defaultPoints: number[] = [
+            0.3136986301369863, -0.07424657534246575,
+            0.9479452054794520,  0.11205479452054794,
+            0.7876712328767124,  1.03698630136986300,
+            0.0589041095890411,  0.80246575342465750,
+        ];
+        updatePoints(defaultPoints);
+        this.points = [
+            [defaultPoints[0], defaultPoints[1]],
+            [defaultPoints[2], defaultPoints[3]],
+            [defaultPoints[4], defaultPoints[5]],
+            [defaultPoints[6], defaultPoints[7]],
+        ].map((e): Ipoint => {
+            const x: number = this.offsetX + e[0] * w;
+            const y: number = this.offsetY + e[1] * h;
             return { x, y };
         });
         this.draw();
@@ -111,15 +126,11 @@ class Canvas extends React.Component<Props> {
         });
     }
     private onMouseMove(ev: MouseEvent): void {
-        const { updatePoints } = this.props;
         if (this.drag === -1) {
             return;
         }
-        this.points[this.drag] = this.calcMousePoint(ev);
-        updatePoints(this.points
-            .map((p: Ipoint) => [p.x, p.y])
-            .reduce((prev, curr) => prev.concat(curr), []));
         this.draw();
+        this.updatePoints(ev);
     }
     private onMouseUp(ev: Event): void {
         this.drag = -1;
@@ -132,6 +143,16 @@ class Canvas extends React.Component<Props> {
             x: (ev.clientX - rect.left) * scale,
             y: (ev.clientY - rect.top) * scale,
         };
+    }
+    private updatePoints(ev: MouseEvent) {
+        const { size, updatePoints } = this.props;
+        this.points[this.drag] = this.calcMousePoint(ev);
+        updatePoints(this.points
+            .map((p: Ipoint) => [
+                (p.x - this.offsetX) / (size - this.offsetX * 2),
+                (p.y - this.offsetY) / (size - this.offsetY * 2),
+            ])
+            .reduce((prev, curr) => prev.concat(curr), []));
     }
 }
 
