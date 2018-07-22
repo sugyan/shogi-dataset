@@ -1,10 +1,12 @@
-import { Action, ActionName } from "./actions";
+import { Action, ActionName, IloadImageAction, IupdatePointAction } from "./actions";
 
 export interface Istate {
+    dataUrl?: string;
     points: number[];
 }
 
 const initialState: Istate = {
+    dataUrl: undefined,
     points: [],
 };
 
@@ -14,6 +16,11 @@ export function reducer(state: Istate = initialState, action: Action): Istate {
             return {
                 ...state,
                 points: action.points,
+            };
+        case ActionName.LOAD_IMAGE:
+            return {
+                ...state,
+                dataUrl: action.dataUrl,
             };
         default:
             return state;

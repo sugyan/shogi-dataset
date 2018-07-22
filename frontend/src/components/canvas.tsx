@@ -2,13 +2,14 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 
-import { Action, updatePointAction } from "../redux/actions";
+import { Action, loadImageAction, updatePointAction } from "../redux/actions";
 
 interface Iprops {
     size: number;
 }
 
 interface IdispatchProps {
+    loadImage: (data: string) => Action;
     updatePoints: (points: number[]) => Action;
 }
 
@@ -50,7 +51,7 @@ class Canvas extends React.Component<Props> {
         );
     }
     private loadImage(): void {
-        const { size } = this.props;
+        const { size, loadImage } = this.props;
         this.ctx!.fillStyle = "lightgray";
         this.ctx!.fillRect(0, 0, size, size);
 
@@ -63,8 +64,14 @@ class Canvas extends React.Component<Props> {
             this.ctx!.drawImage(img, x, y, w / scale, h / scale);
             this.imageData = this.ctx!.getImageData(0, 0, size, size);
             this.onLoadImage(x, y);
+
+            const imageCanvas: HTMLCanvasElement = document.createElement("canvas");
+            imageCanvas.width = img.width;
+            imageCanvas.height = img.height;
+            imageCanvas.getContext("2d")!.drawImage(img, 0, 0);
+            loadImage(imageCanvas.toDataURL("image/png"));
         };
-        // TODO
+        img.src = "/static/img/example.jpg";
     }
     private draw(): void {
         this.ctx!.putImageData(this.imageData!, 0, 0);
@@ -130,8 +137,9 @@ class Canvas extends React.Component<Props> {
 
 export default connect<{}, IdispatchProps>(
     (state) => state,
-    (dispatch: Dispatch<Action>): IdispatchProps => {
+    (dispatch: Dispatch): IdispatchProps => {
         return {
+            loadImage: (dataUrl: string) => dispatch(loadImageAction(dataUrl)),
             updatePoints: (points: number[]) => dispatch(updatePointAction(points)),
         };
     },
