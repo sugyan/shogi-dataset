@@ -63,7 +63,16 @@ class Perspective extends React.Component<Props, Istate> {
             img.onload = () => {
                 this.container.current!.getContext("2d")!.drawImage(img, 0, 0, size, size, 0, 0, this.size, this.size);
             };
-            img.src = this.canvas!.toDataURL("image/jpeg");
+            const data: Uint8Array = this.canvas!.getPixelArray();
+            const c: HTMLCanvasElement = document.createElement("canvas");
+            c.width = c.height = this.size;
+            const tmpCtx: CanvasRenderingContext2D = c.getContext("2d")!;
+            const imageData: ImageData = tmpCtx.createImageData(this.canvas!.width, this.canvas!.height);
+            for (let i = 0; i < imageData.data.length; i++) {
+                imageData.data[i] = data[i];
+            }
+            tmpCtx.putImageData(imageData, 0, 0);
+            img.src = c.toDataURL("image/jpeg");
         }
         return (
             <div>
