@@ -22,7 +22,7 @@ interface Ipoint {
 
 class Canvas extends React.Component<Props> {
     private canvas: React.RefObject<HTMLCanvasElement>;
-    private ctx?: CanvasRenderingContext2D;
+    private ctx: CanvasRenderingContext2D | null = null;
     private offsetX: number = 0;
     private offsetY: number = 0;
     private points: Ipoint[] = [];
@@ -40,7 +40,7 @@ class Canvas extends React.Component<Props> {
         canvas.addEventListener("mousemove", this.onMouseMove.bind(this));
         canvas.addEventListener("mouseup",   this.onMouseUp.bind(this));
 
-        this.ctx = canvas.getContext("2d")!;
+        this.ctx = canvas.getContext("2d");
         this.loadImage();
     }
     public render(): React.ReactNode {
@@ -53,8 +53,9 @@ class Canvas extends React.Component<Props> {
     }
     private loadImage(): void {
         const { size, loadImage } = this.props;
-        this.ctx!.fillStyle = "lightgray";
-        this.ctx!.fillRect(0, 0, size, size);
+        const ctx: CanvasRenderingContext2D = this.ctx!;
+        ctx.fillStyle = "lightgray";
+        ctx.fillRect(0, 0, size, size);
 
         const img: HTMLImageElement = new Image();
         img.onload = (ev: Event) => {
@@ -62,8 +63,8 @@ class Canvas extends React.Component<Props> {
             const scale: number = Math.max(h / size, w / size);
             this.offsetX = (size - w / scale) / 2.0;
             this.offsetY = (size - h / scale) / 2.0;
-            this.ctx!.drawImage(img, this.offsetX, this.offsetY, w / scale, h / scale);
-            this.imageData = this.ctx!.getImageData(0, 0, size, size);
+            ctx.drawImage(img, this.offsetX, this.offsetY, w / scale, h / scale);
+            this.imageData = ctx.getImageData(0, 0, size, size);
             this.onLoadImage();
 
             const imageCanvas: HTMLCanvasElement = document.createElement("canvas");
@@ -75,33 +76,38 @@ class Canvas extends React.Component<Props> {
         img.src = "/static/img/example.jpg";
     }
     private draw(): void {
-        this.ctx!.putImageData(this.imageData!, 0, 0);
+        const ctx: CanvasRenderingContext2D = this.ctx!;
+        ctx.putImageData(this.imageData!, 0, 0);
         // line
-        this.ctx!.lineWidth = 1.5;
-        this.ctx!.strokeStyle = "red";
-        this.ctx!.beginPath();
-        this.ctx!.moveTo(this.points[3].x, this.points[3].y);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "red";
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(this.points[3].x, this.points[3].y);
         this.points.forEach((p: Ipoint) => {
-            this.ctx!.lineTo(p.x, p.y);
+            ctx.lineTo(p.x, p.y);
         });
-        this.ctx!.stroke();
+        ctx.stroke();
+        ctx.closePath();
         // circle
-        this.ctx!.fillStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
         this.points.forEach((p: Ipoint) => {
-            this.ctx!.beginPath();
-            this.ctx!.arc(p.x, p.y, 10, 0, Math.PI * 2.0);
-            this.ctx!.fill();
-            this.ctx!.stroke();
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 10, 0, Math.PI * 2.0);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
         });
     }
     private onLoadImage(): void {
         const { size } = this.props;
         const w: number = size - this.offsetX * 2.0;
         const h: number = size - this.offsetY * 2.0;
-        this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((e): Ipoint => {
-            const x: number = this.offsetX + e[0] * w;
-            const y: number = this.offsetY + e[1] * h;
-            return { x, y };
+        this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((v): Ipoint => {
+            return {
+                x: this.offsetX + v[0] * w,
+                y: this.offsetY + v[1] * h,
+            };
         });
         this.draw();
     }
