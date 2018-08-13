@@ -9,7 +9,7 @@ interface Iprops {
 }
 
 interface IdispatchProps {
-    loadImage: (data: string) => Action;
+    loadImage: (data: HTMLImageElement) => Action;
     updatePoints: (points: number[]) => Action;
 }
 
@@ -70,7 +70,7 @@ class Canvas extends React.Component<Props> {
             imageCanvas.width = img.width;
             imageCanvas.height = img.height;
             imageCanvas.getContext("2d")!.drawImage(img, 0, 0);
-            loadImage(imageCanvas.toDataURL("image/png"));
+            loadImage(img);
         };
         img.src = "/static/img/example.jpg";
     }
@@ -147,12 +147,13 @@ class Canvas extends React.Component<Props> {
     private updatePoints(ev: MouseEvent) {
         const { size, updatePoints } = this.props;
         this.points[this.drag] = this.calcMousePoint(ev);
-        updatePoints(this.points
-            .map((p: Ipoint) => [
-                (p.x - this.offsetX) / (size - this.offsetX * 2),
-                (p.y - this.offsetY) / (size - this.offsetY * 2),
-            ])
-            .reduce((prev, curr) => prev.concat(curr), []));
+        updatePoints(
+            this.points
+                .map((p: Ipoint) => [
+                    (p.x - this.offsetX) / (size - this.offsetX * 2),
+                    (p.y - this.offsetY) / (size - this.offsetY * 2),
+                ])
+                .reduce((prev, curr) => prev.concat(curr), []));
     }
 }
 
@@ -160,7 +161,7 @@ export default connect<{}, IdispatchProps>(
     (state) => state,
     (dispatch: Dispatch): IdispatchProps => {
         return {
-            loadImage: (dataUrl: string) => dispatch(loadImageAction(dataUrl)),
+            loadImage: (image: HTMLImageElement) => dispatch(loadImageAction(image)),
             updatePoints: (points: number[]) => dispatch(updatePointAction(points)),
         };
     },

@@ -1,19 +1,20 @@
 import * as fx from "glfx";
 import * as React from "react";
 import { connect } from "react-redux";
+import { Istate } from "../redux/reducers";
 
 interface IstateProps {
-    dataUrl?: string;
+    image?: HTMLImageElement;
     points: number[];
 }
 
 type Props = IstateProps;
 
-interface Istate {
+interface IperspectiveState {
     texture?: fx.Texture;
 }
 
-class Perspective extends React.Component<Props, Istate> {
+class Perspective extends React.Component<Props, IperspectiveState> {
     private container: React.RefObject<HTMLCanvasElement>;
     private canvas?: fx.Canvas;
     private size: number = 864;
@@ -35,15 +36,11 @@ class Perspective extends React.Component<Props, Istate> {
         }
     }
     public componentWillReceiveProps(props: Props) {
-        const { dataUrl } = this.props;
-        if (props.dataUrl !== dataUrl) {
-            const image: HTMLImageElement = new Image();
-            image.onload = (ev: Event) => {
-                this.canvas!.width  = image.width;
-                this.canvas!.height = image.height;
-                this.setState({ texture: this.canvas!.texture(image) });
-            };
-            image.src = props.dataUrl!;
+        const { image } = props;
+        if (image !== this.props.image) {
+            this.canvas!.width  = image!.width;
+            this.canvas!.height = image!.height;
+            this.setState({ texture: this.canvas!.texture(image!) });
         }
     }
     public render(): React.ReactNode {
@@ -83,11 +80,10 @@ class Perspective extends React.Component<Props, Istate> {
     }
 }
 
-export default connect<IstateProps>(
-    // TODO
-    (state: any): IstateProps => {
+export default connect(
+    (state: Istate): IstateProps => {
         return {
-            dataUrl: state.dataUrl,
+            image: state.image,
             points: state.points,
         };
     },

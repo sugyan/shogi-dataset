@@ -12,7 +12,7 @@ export interface IupdatePointAction extends Action {
 
 export interface IloadImageAction extends Action {
     type: ActionName.LOAD_IMAGE;
-    dataUrl: string;
+    image: HTMLImageElement;
 }
 
 export type Action = IupdatePointAction | IloadImageAction;
@@ -24,9 +24,9 @@ export const updatePointAction = (points: number[]): IupdatePointAction => {
     };
 };
 
-export const loadImageAction = (dataUrl: string): IloadImageAction => {
+export const loadImageAction = (image: HTMLImageElement): IloadImageAction => {
     return {
-        dataUrl,
+        image,
         type: ActionName.LOAD_IMAGE,
     };
 };
