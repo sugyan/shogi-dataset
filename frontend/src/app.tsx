@@ -15,7 +15,7 @@ export class App extends React.Component<{}, {}> {
                     <Canvas size={1024} />
                   </div>
                   <div className="col-4">
-                    <Perspective />
+                    <Perspective size={96 * 9} />
                   </div>
                 </div>
               </div>

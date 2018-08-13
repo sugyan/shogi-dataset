@@ -95,24 +95,10 @@ class Canvas extends React.Component<Props> {
         });
     }
     private onLoadImage(): void {
-        const { size, updatePoints } = this.props;
+        const { size } = this.props;
         const w: number = size - this.offsetX * 2.0;
         const h: number = size - this.offsetY * 2.0;
-        // this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((e): Ipoint => {
-        // FIXME: for DEMO
-        const defaultPoints: number[] = [
-            0.3136986301369863, -0.07424657534246575,
-            0.9479452054794520,  0.11205479452054794,
-            0.7876712328767124,  1.03698630136986300,
-            0.0589041095890411,  0.80246575342465750,
-        ];
-        updatePoints(defaultPoints);
-        this.points = [
-            [defaultPoints[0], defaultPoints[1]],
-            [defaultPoints[2], defaultPoints[3]],
-            [defaultPoints[4], defaultPoints[5]],
-            [defaultPoints[6], defaultPoints[7]],
-        ].map((e): Ipoint => {
+        this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((e): Ipoint => {
             const x: number = this.offsetX + e[0] * w;
             const y: number = this.offsetY + e[1] * h;
             return { x, y };

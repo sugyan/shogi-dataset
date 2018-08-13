@@ -7,7 +7,12 @@ export interface Istate {
 
 const initialState: Istate = {
     image: undefined,
-    points: [],
+    points: [
+        0.1, 0.1,
+        0.9, 0.1,
+        0.9, 0.9,
+        0.1, 0.9,
+    ],
 };
 
 export function reducer(state: Istate = initialState, action: Action): Istate {

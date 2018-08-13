@@ -2,7 +2,7 @@ declare module 'glfx' {
     function canvas(): Canvas;
 
     export class Canvas extends HTMLCanvasElement {
-        draw: (texture: Texture) => Canvas;
+        draw: (texture: Texture, width?: number, height?: number) => Canvas;
         perspective: (before: number[], after: number[]) => Canvas;
         update: () => Canvas;
         getPixelArray: () => Uint8Array;

@@ -3,12 +3,16 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Istate } from "../redux/reducers";
 
+interface Iprops {
+    size: number;
+}
+
 interface IstateProps {
     image?: HTMLImageElement;
     points: number[];
 }
 
-type Props = IstateProps;
+type Props = Iprops & IstateProps;
 
 interface IperspectiveState {
     texture?: fx.Texture;
@@ -17,7 +21,6 @@ interface IperspectiveState {
 class Perspective extends React.Component<Props, IperspectiveState> {
     private container: React.RefObject<HTMLCanvasElement>;
     private canvas?: fx.Canvas;
-    private size: number = 864;
     constructor(props: any) {
         super(props);
         this.container = React.createRef<HTMLCanvasElement>();
@@ -26,10 +29,12 @@ class Perspective extends React.Component<Props, IperspectiveState> {
         };
     }
     public componentDidMount() {
+        const { size } = this.props;
         const canvas: HTMLCanvasElement = this.container.current!;
-        canvas.height = canvas.width = this.size;
+        canvas.height = canvas.width = size;
         try {
             this.canvas = fx.canvas();
+            this.canvas!.width = this.canvas!.height = size;
         } catch (e) {
             window.console.error(e);
             return;
@@ -38,38 +43,21 @@ class Perspective extends React.Component<Props, IperspectiveState> {
     public componentWillReceiveProps(props: Props) {
         const { image } = props;
         if (image !== this.props.image) {
-            this.canvas!.width  = image!.width;
-            this.canvas!.height = image!.height;
             this.setState({ texture: this.canvas!.texture(image!) });
         }
     }
     public render(): React.ReactNode {
-        const { points } = this.props;
+        const { points, size } = this.props;
         const { texture } = this.state;
         if (texture) {
-            const size: number = Math.min(this.canvas!.height, this.canvas!.width);
-            this.canvas!.draw(texture).perspective(
-                [
-                    points[0] * this.canvas!.width, points[1] * this.canvas!.height,
-                    points[2] * this.canvas!.width, points[3] * this.canvas!.height,
-                    points[4] * this.canvas!.width, points[5] * this.canvas!.height,
-                    points[6] * this.canvas!.width, points[7] * this.canvas!.height,
-                ],
-                [0, 0, size, 0, size, size, 0, size]).update();
-            const img: HTMLImageElement = new Image();
-            img.onload = () => {
-                this.container.current!.getContext("2d")!.drawImage(img, 0, 0, size, size, 0, 0, this.size, this.size);
-            };
+            this.canvas!.draw(texture, size, size)
+                .perspective(
+                    points.map((v) => v * size),
+                    [0, 0, 1, 0, 1, 1, 0, 1].map((v) => v * size))
+                .update();
             const data: Uint8Array = this.canvas!.getPixelArray();
-            const c: HTMLCanvasElement = document.createElement("canvas");
-            c.width = c.height = this.size;
-            const tmpCtx: CanvasRenderingContext2D = c.getContext("2d")!;
-            const imageData: ImageData = tmpCtx.createImageData(this.canvas!.width, this.canvas!.height);
-            for (let i = 0; i < imageData.data.length; i++) {
-                imageData.data[i] = data[i];
-            }
-            tmpCtx.putImageData(imageData, 0, 0);
-            img.src = c.toDataURL("image/jpeg");
+            const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
+            this.container.current!.getContext("2d")!.putImageData(imageData, 0, 0);
         }
         return (
             <div>
