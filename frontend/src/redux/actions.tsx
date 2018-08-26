@@ -1,8 +1,9 @@
 import { Action } from "redux";
 
 export enum ActionName {
-    UPDATE_POINTS = "UPDATE_POINTS",
-    LOAD_IMAGE    = "LOAD_IMAGE",
+    UPDATE_POINTS  = "UPDATE_POINTS",
+    LOAD_IMAGE     = "LOAD_IMAGE",
+    SELECT_EXAMPLE = "SELECT_EXAMPLE",
 }
 
 export interface IupdatePointAction extends Action {
@@ -15,7 +16,12 @@ export interface IloadImageAction extends Action {
     image: HTMLImageElement;
 }
 
-export type Action = IupdatePointAction | IloadImageAction;
+export interface IselectExample extends Action {
+    type: ActionName.SELECT_EXAMPLE;
+    index: number;
+}
+
+export type Action = IupdatePointAction | IloadImageAction | IselectExample;
 
 export const updatePointAction = (points: number[]): IupdatePointAction => {
     return {
@@ -28,5 +34,12 @@ export const loadImageAction = (image: HTMLImageElement): IloadImageAction => {
     return {
         image,
         type: ActionName.LOAD_IMAGE,
+    };
+};
+
+export const selectExample = (index: number): IselectExample => {
+    return {
+        index,
+        type: ActionName.SELECT_EXAMPLE,
     };
 };
