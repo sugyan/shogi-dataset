@@ -2,34 +2,31 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 
-import { Action, loadImageAction, updatePointAction } from "../redux/actions";
+import { Action, loadImageAction, selectExampleAction, updatePointAction } from "../redux/actions";
+import { Ipoint, Istate } from "../redux/reducers";
 
 interface Iprops {
     size: number;
 }
 
+interface IstateProps {
+    exampleIndex: number;
+    points: Ipoint[];
+}
+
 interface IdispatchProps {
     loadImage: (data: HTMLImageElement) => Action;
-    updatePoints: (points: number[]) => Action;
+    selectExample: (index: number) => Action;
+    updatePoints: (points: Ipoint[]) => Action;
 }
 
-type Props = Iprops & IdispatchProps;
+type Props = Iprops & IstateProps & IdispatchProps;
 
-interface Istate {
-    selectedImage: number;
-}
-
-interface Ipoint {
-    x: number;
-    y: number;
-}
-
-class Canvas extends React.Component<Props, Istate> {
+class Canvas extends React.Component<Props> {
     private canvas: React.RefObject<HTMLCanvasElement>;
     private ctx: CanvasRenderingContext2D | null = null;
     private offsetX: number = 0;
     private offsetY: number = 0;
-    private points: Ipoint[] = [];
     private drag: number = -1;
     private imageData?: ImageData;
     private images: string[] = [
@@ -37,7 +34,7 @@ class Canvas extends React.Component<Props, Istate> {
         "/static/img/example2.jpg",
         "/static/img/example3.jpg",
     ];
-    private initialPoints = [
+    private points = [
         [
             { x: 272.1315068493151, y: 256.701369863014 },
             { x: 779.9232876712329, y: 249.687671232877 },
@@ -57,15 +54,13 @@ class Canvas extends React.Component<Props, Istate> {
             { x: 0,                 y: 625.621917808219 },
         ],
     ];
-    constructor(props: any) {
+    private drawPoints: Ipoint[] = this.points[0];
+    constructor(props: Props) {
         super(props);
         this.canvas = React.createRef<HTMLCanvasElement>();
-        this.state = {
-            selectedImage: 0,
-        };
     }
     public componentDidMount(): void {
-        const { size } = this.props;
+        const { size, exampleIndex } = this.props;
         const canvas: HTMLCanvasElement = this.canvas.current!;
         canvas.height = canvas.width = size;
         canvas.addEventListener("mousedown", this.onMouseDown.bind(this));
@@ -73,35 +68,52 @@ class Canvas extends React.Component<Props, Istate> {
         canvas.addEventListener("mouseup",   this.onMouseUp.bind(this));
 
         this.ctx = canvas.getContext("2d");
-        this.loadImage();
+        this.loadImage(exampleIndex);
+    }
+    public componentWillReceiveProps(props: Props) {
+        const { exampleIndex } = this.props;
+        if (exampleIndex !== props.exampleIndex) {
+            this.drawPoints = this.points[props.exampleIndex];
+            this.loadImage(props.exampleIndex);
+        }
     }
     public render(): React.ReactNode {
-        const { selectedImage } = this.state;
+        const { exampleIndex, points, size } = this.props;
+        const displayPoints: Ipoint[] = points.map((p: Ipoint) => {
+            return {
+                x: Math.round(p.x * (size - this.offsetX * 2) * 100) / 100.0,
+                y: Math.round(p.y * (size - this.offsetY * 2) * 100) / 100.0,
+            };
+        });
         return (
             <div>
               <h2>Image</h2>
               <div style={{ margin: "5px 0" }}>
-                <button className={`btn btn-${selectedImage === 0 ? "success" : "light"}`}
+                <button
+                  className={`btn btn-${exampleIndex === 0 ? "success" : "light"}`}
+                  style={{ marginRight: 5 }}
                   onClick={this.onSelectImage.bind(this, 0)}>
                   example 1
                 </button>
-                <button className={`btn btn-${selectedImage === 1 ? "success" : "light"}`}
+                <button
+                  className={`btn btn-${exampleIndex === 1 ? "success" : "light"}`}
+                  style={{ marginRight: 5 }}
                   onClick={this.onSelectImage.bind(this, 1)}>
                   example 2
                 </button>
-                <button className={`btn btn-${selectedImage === 2 ? "success" : "light"}`}
+                <button
+                  className={`btn btn-${exampleIndex === 2 ? "success" : "light"}`}
                   onClick={this.onSelectImage.bind(this, 2)}>
                   example 3
                 </button>
               </div>
               <canvas ref={this.canvas} style={{ width: "100%", border: "1px solid gray" }} />
-              <code>{JSON.stringify(this.points)}</code>
+              <code>{JSON.stringify(displayPoints)}</code>
             </div>
         );
     }
-    private loadImage(): void {
+    private loadImage(index: number): void {
         const { size, loadImage } = this.props;
-        const { selectedImage } = this.state;
         const ctx: CanvasRenderingContext2D = this.ctx!;
         ctx.fillStyle = "lightgray";
         ctx.fillRect(0, 0, size, size);
@@ -122,9 +134,10 @@ class Canvas extends React.Component<Props, Istate> {
             imageCanvas.getContext("2d")!.drawImage(img, 0, 0);
             loadImage(img);
         };
-        img.src = this.images[selectedImage];
+        img.src = this.images[index];
     }
     private draw(): void {
+        const points: Ipoint[] = this.drawPoints;
         const ctx: CanvasRenderingContext2D = this.ctx!;
         ctx.putImageData(this.imageData!, 0, 0);
         // line
@@ -132,15 +145,15 @@ class Canvas extends React.Component<Props, Istate> {
         ctx.strokeStyle = "red";
         ctx.setLineDash([]);
         ctx.beginPath();
-        ctx.moveTo(this.points[3].x, this.points[3].y);
-        this.points.forEach((p: Ipoint) => {
+        ctx.moveTo(points[3].x, points[3].y);
+        points.forEach((p: Ipoint) => {
             ctx.lineTo(p.x, p.y);
         });
         ctx.stroke();
         ctx.closePath();
         // circle
         ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-        this.points.forEach((p: Ipoint) => {
+        points.forEach((p: Ipoint) => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2.0);
             ctx.fill();
@@ -149,21 +162,19 @@ class Canvas extends React.Component<Props, Istate> {
         });
     }
     private onLoadImage(): void {
-        const { updatePoints, size } = this.props;
-        const { selectedImage } = this.state;
-        this.points = this.initialPoints[selectedImage];
+        const { updatePoints, size, exampleIndex } = this.props;
+        const points: Ipoint[] = this.drawPoints;
         this.draw();
-        updatePoints(
-            this.points
-                .map((p: Ipoint) => [
-                    (p.x - this.offsetX) / (size - this.offsetX * 2),
-                    (p.y - this.offsetY) / (size - this.offsetY * 2),
-                ])
-                .reduce((prev, curr) => prev.concat(curr), []));
+        updatePoints(points.map((p: Ipoint): Ipoint => {
+            return {
+                x: (p.x - this.offsetX) / (size - this.offsetX * 2),
+                y: (p.y - this.offsetY) / (size - this.offsetY * 2),
+            };
+        }));
     }
     private onMouseDown(ev: MouseEvent): void {
         const target: Ipoint = this.calcMousePoint(ev);
-        this.drag = this.points.findIndex((p: Ipoint): boolean => {
+        this.drag = this.drawPoints.findIndex((p: Ipoint): boolean => {
             return Math.sqrt((target.x - p.x) ** 2 + (target.y - p.y) ** 2) < 10.0;
         });
     }
@@ -188,28 +199,32 @@ class Canvas extends React.Component<Props, Istate> {
     }
     private updatePoints(ev: MouseEvent) {
         const { size, updatePoints } = this.props;
-        this.points[this.drag] = this.calcMousePoint(ev);
-        updatePoints(
-            this.points
-                .map((p: Ipoint) => [
-                    (p.x - this.offsetX) / (size - this.offsetX * 2),
-                    (p.y - this.offsetY) / (size - this.offsetY * 2),
-                ])
-                .reduce((prev, curr) => prev.concat(curr), []));
+        this.drawPoints[this.drag] = this.calcMousePoint(ev);
+        updatePoints(this.drawPoints.map((p: Ipoint): Ipoint => {
+            return {
+                x: (p.x - this.offsetX) / (size - this.offsetX * 2),
+                y: (p.y - this.offsetY) / (size - this.offsetY * 2),
+            };
+        }));
     }
     private onSelectImage(index: number) {
-        this.setState({
-            selectedImage: index,
-        }, this.loadImage);
+        const { selectExample } = this.props;
+        selectExample(index);
     }
 }
 
 export default connect(
-    (state) => state,
+    (state: Istate): IstateProps => {
+        return {
+            exampleIndex: state.exampleIndex,
+            points: state.points,
+        };
+    },
     (dispatch: Dispatch): IdispatchProps => {
         return {
             loadImage: (image: HTMLImageElement) => dispatch(loadImageAction(image)),
-            updatePoints: (points: number[]) => dispatch(updatePointAction(points)),
+            selectExample: (index: number) => dispatch(selectExampleAction(index)),
+            updatePoints: (points: Ipoint[]) => dispatch(updatePointAction(points)),
         };
     },
 )(Canvas);

@@ -1,4 +1,5 @@
 import { Action } from "redux";
+import { Ipoint } from "./reducers";
 
 export enum ActionName {
     UPDATE_POINTS  = "UPDATE_POINTS",
@@ -8,7 +9,7 @@ export enum ActionName {
 
 export interface IupdatePointAction extends Action {
     type: ActionName.UPDATE_POINTS;
-    points: number[];
+    points: Ipoint[];
 }
 
 export interface IloadImageAction extends Action {
@@ -23,7 +24,7 @@ export interface IselectExample extends Action {
 
 export type Action = IupdatePointAction | IloadImageAction | IselectExample;
 
-export const updatePointAction = (points: number[]): IupdatePointAction => {
+export const updatePointAction = (points: Ipoint[]): IupdatePointAction => {
     return {
         points,
         type: ActionName.UPDATE_POINTS,
@@ -37,7 +38,7 @@ export const loadImageAction = (image: HTMLImageElement): IloadImageAction => {
     };
 };
 
-export const selectExample = (index: number): IselectExample => {
+export const selectExampleAction = (index: number): IselectExample => {
     return {
         index,
         type: ActionName.SELECT_EXAMPLE,

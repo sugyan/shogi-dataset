@@ -1,8 +1,13 @@
 import { Action, ActionName } from "./actions";
 
+export interface Ipoint {
+    x: number;
+    y: number;
+}
+
 export interface Istate {
     image?: HTMLImageElement;
-    points: number[];
+    points: Ipoint[];
     exampleIndex: number;
 }
 
@@ -10,10 +15,10 @@ const initialState: Istate = {
     exampleIndex: 0,
     image: undefined,
     points: [
-        0.1, 0.1,
-        0.9, 0.1,
-        0.9, 0.9,
-        0.1, 0.9,
+        { x: 0.1, y: 0.1 },
+        { x: 0.9, y: 0.1 },
+        { x: 0.9, y: 0.9 },
+        { x: 0.1, y: 0.9 },
     ],
 };
 
