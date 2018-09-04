@@ -73,7 +73,7 @@ class Canvas extends React.Component<Props> {
             imageCanvas.getContext("2d")!.drawImage(img, 0, 0);
             loadImage(img);
         };
-        img.src = "/static/img/example.jpg";
+        // img.src = "/static/img/example.jpg";
     }
     private draw(): void {
         const ctx: CanvasRenderingContext2D = this.ctx!;

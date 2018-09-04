@@ -61,8 +61,8 @@ class Perspective extends React.Component<Props, IperspectiveState> {
         }
         return (
             <div>
-              <h3>Cropped</h3>
-              <canvas ref={this.container} style={{ width: "100%" }} />
+              <h2>Cropped</h2>
+              <canvas ref={this.container} style={{ width: "100%", border: "1px solid" }} />
             </div>
         );
     }

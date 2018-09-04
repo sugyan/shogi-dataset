@@ -3,7 +3,7 @@ import * as ReactDOM from "react-dom";
 import { Provider } from "react-redux";
 import { createStore, Store } from "redux";
 
-import { App } from "./app";
+import App from "./app";
 import { Istate, reducer } from "./redux/reducers";
 
 window.addEventListener("DOMContentLoaded", () => {
