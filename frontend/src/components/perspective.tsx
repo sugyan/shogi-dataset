@@ -1,13 +1,15 @@
 import * as fx from "glfx";
 import * as React from "react";
 import { connect } from "react-redux";
-import { Istate } from "../redux/reducers";
+
+import { IdivideNums, Istate } from "../redux/reducers";
 
 interface Iprops {
     size: number;
 }
 
 interface IstateProps {
+    divide: IdivideNums;
     image?: HTMLImageElement;
     points: number[];
 }
@@ -47,7 +49,7 @@ class Perspective extends React.Component<Props, IperspectiveState> {
         }
     }
     public render(): React.ReactNode {
-        const { points, size } = this.props;
+        const { points, size, divide } = this.props;
         const { texture } = this.state;
         if (texture) {
             this.canvas!.draw(texture, size, size)
@@ -57,7 +59,21 @@ class Perspective extends React.Component<Props, IperspectiveState> {
                 .update();
             const data: Uint8Array = this.canvas!.getPixelArray();
             const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
-            this.container.current!.getContext("2d")!.putImageData(imageData, 0, 0);
+            const ctx: CanvasRenderingContext2D = this.container.current!.getContext("2d")!;
+            ctx.putImageData(imageData, 0, 0);
+            ctx.strokeStyle = "lightgray";
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            for (let i = 1; i < divide.row; i++) {
+                ctx.moveTo(0, size / divide.row * i);
+                ctx.lineTo(size, size / divide.row * i);
+                ctx.stroke();
+            }
+            for (let i = 0; i < divide.col; i++) {
+                ctx.moveTo(size / divide.col * i, 0);
+                ctx.lineTo(size / divide.col * i, size);
+                ctx.stroke();
+            }
         }
         return (
             <div>
@@ -71,6 +87,7 @@ class Perspective extends React.Component<Props, IperspectiveState> {
 export default connect(
     (state: Istate): IstateProps => {
         return {
+            divide: state.divide,
             image: state.image,
             points: state.points,
         };

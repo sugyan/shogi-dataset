@@ -17,6 +17,7 @@ export default class App extends React.Component {
                   </div>
                   <div className="col-4">
                     <Perspective size={96 * 9} />
+                    <hr />
                     <Divide />
                   </div>
                 </div>

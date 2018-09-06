@@ -1,13 +1,11 @@
 import { Action } from "redux";
 
-export enum ActionName {
-    UPDATE_POINTS = "UPDATE_POINTS",
-    LOAD_IMAGE    = "LOAD_IMAGE",
-}
+import { IdivideNums } from "./reducers";
 
-export interface IupdatePointAction extends Action {
-    type: ActionName.UPDATE_POINTS;
-    points: number[];
+export enum ActionName {
+    LOAD_IMAGE    = "LOAD_IMAGE",
+    UPDATE_POINTS = "UPDATE_POINTS",
+    CHANGE_DIVIDE = "CHANGE_DIVIDE",
 }
 
 export interface IloadImageAction extends Action {
@@ -15,7 +13,17 @@ export interface IloadImageAction extends Action {
     image: HTMLImageElement;
 }
 
-export type Action = IupdatePointAction | IloadImageAction;
+export interface IupdatePointAction extends Action {
+    type: ActionName.UPDATE_POINTS;
+    points: number[];
+}
+
+export interface IchangeDivideAction extends Action {
+    type: ActionName.CHANGE_DIVIDE;
+    divide: IdivideNums;
+}
+
+export type Action = IupdatePointAction | IloadImageAction | IchangeDivideAction;
 
 export const updatePointAction = (points: number[]): IupdatePointAction => {
     return {
@@ -28,5 +36,12 @@ export const loadImageAction = (image: HTMLImageElement): IloadImageAction => {
     return {
         image,
         type: ActionName.LOAD_IMAGE,
+    };
+};
+
+export const changeDivideAction = (divide: IdivideNums): IchangeDivideAction => {
+    return {
+        divide,
+        type: ActionName.CHANGE_DIVIDE,
     };
 };

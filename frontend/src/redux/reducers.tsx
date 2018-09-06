@@ -1,11 +1,20 @@
 import { Action, ActionName, IloadImageAction, IupdatePointAction } from "./actions";
 
+export interface IdivideNums {
+    row: number;
+    col: number;
+}
 export interface Istate {
     image?: HTMLImageElement;
     points: number[];
+    divide: IdivideNums;
 }
 
 const initialState: Istate = {
+    divide: {
+        col: 9,
+        row: 9,
+    },
     image: undefined,
     points: [
         0.1, 0.1,
@@ -26,6 +35,11 @@ export function reducer(state: Istate = initialState, action: Action): Istate {
             return {
                 ...state,
                 image: action.image,
+            };
+        case ActionName.CHANGE_DIVIDE:
+            return {
+                ...state,
+                divide: action.divide,
             };
         default:
             return state;
