@@ -1,7 +1,9 @@
 import * as fx from "glfx";
 import * as React from "react";
 import { connect } from "react-redux";
+import { Dispatch } from "redux";
 
+import { Action, updateImageDataAction } from "../redux/actions";
 import { IdivideNums, Istate } from "../redux/reducers";
 
 interface Iprops {
@@ -11,24 +13,23 @@ interface Iprops {
 interface IstateProps {
     divide: IdivideNums;
     image?: HTMLImageElement;
+    imageData?: ImageData;
     points: number[];
 }
 
-type Props = Iprops & IstateProps;
-
-interface IperspectiveState {
-    texture?: fx.Texture;
+interface IdispatchProps {
+    updateImageData: (imageData: ImageData) => Action;
 }
 
-class Perspective extends React.Component<Props, IperspectiveState> {
+type Props = Iprops & IstateProps & IdispatchProps;
+
+class Perspective extends React.Component<Props> {
     private container: React.RefObject<HTMLCanvasElement>;
     private canvas?: fx.Canvas;
+    private texture?: fx.Texture;
     constructor(props: any) {
         super(props);
         this.container = React.createRef<HTMLCanvasElement>();
-        this.state = {
-            texture: undefined,
-        };
     }
     public componentDidMount() {
         const { size } = this.props;
@@ -43,24 +44,20 @@ class Perspective extends React.Component<Props, IperspectiveState> {
         }
     }
     public componentWillReceiveProps(props: Props) {
-        const { image } = props;
-        if (image !== this.props.image) {
-            this.setState({ texture: this.canvas!.texture(image!) });
+        const { image, points } = this.props;
+        if (props.image !== image) {
+            this.texture = this.canvas!.texture(props.image!);
+            this.updateImageData(props.points);
+        }
+        if (props.points !== points && this.texture) {
+            this.updateImageData(props.points);
         }
     }
     public render(): React.ReactNode {
-        const { points, size, divide } = this.props;
-        const { texture } = this.state;
-        if (texture) {
-            this.canvas!.draw(texture, size, size)
-                .perspective(
-                    points.map((v) => v * size),
-                    [0, 0, 1, 0, 1, 1, 0, 1].map((v) => v * size))
-                .update();
-            const data: Uint8Array = this.canvas!.getPixelArray();
-            const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
+        const { size, divide, imageData } = this.props;
+        if (imageData) {
             const ctx: CanvasRenderingContext2D = this.container.current!.getContext("2d")!;
-            ctx.putImageData(imageData, 0, 0);
+            ctx.putImageData(imageData!, 0, 0);
             ctx.strokeStyle = "lightgray";
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
@@ -82,6 +79,17 @@ class Perspective extends React.Component<Props, IperspectiveState> {
             </div>
         );
     }
+    private updateImageData(points: number[]) {
+        const { size, updateImageData } = this.props;
+        this.canvas!.draw(this.texture!, size, size)
+            .perspective(
+                points.map((v) => v * size),
+                [0, 0, 1, 0, 1, 1, 0, 1].map((v) => v * size))
+            .update();
+        const data: Uint8Array = this.canvas!.getPixelArray();
+        const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
+        updateImageData(imageData);
+    }
 }
 
 export default connect(
@@ -89,7 +97,13 @@ export default connect(
         return {
             divide: state.divide,
             image: state.image,
+            imageData: state.imageData,
             points: state.points,
+        };
+    },
+    (dispatch: Dispatch): IdispatchProps => {
+        return {
+            updateImageData: (imageData: ImageData) => dispatch(updateImageDataAction(imageData)),
         };
     },
 )(Perspective);

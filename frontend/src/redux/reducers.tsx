@@ -4,8 +4,10 @@ export interface IdivideNums {
     row: number;
     col: number;
 }
+
 export interface Istate {
     image?: HTMLImageElement;
+    imageData?: ImageData;
     points: number[];
     divide: IdivideNums;
 }
@@ -26,20 +28,25 @@ const initialState: Istate = {
 
 export function reducer(state: Istate = initialState, action: Action): Istate {
     switch (action.type) {
-        case ActionName.UPDATE_POINTS:
+        case ActionName.CHANGE_DIVIDE:
             return {
                 ...state,
-                points: action.points,
+                divide: action.divide,
             };
         case ActionName.LOAD_IMAGE:
             return {
                 ...state,
                 image: action.image,
             };
-        case ActionName.CHANGE_DIVIDE:
+        case ActionName.UPDATE_IMAGE_DATA:
             return {
                 ...state,
-                divide: action.divide,
+                imageData: action.imageData,
+            };
+        case ActionName.UPDATE_POINTS:
+            return {
+                ...state,
+                points: action.points,
             };
         default:
             return state;

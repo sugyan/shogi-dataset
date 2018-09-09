@@ -3,19 +3,10 @@ import { Action } from "redux";
 import { IdivideNums } from "./reducers";
 
 export enum ActionName {
-    LOAD_IMAGE    = "LOAD_IMAGE",
-    UPDATE_POINTS = "UPDATE_POINTS",
-    CHANGE_DIVIDE = "CHANGE_DIVIDE",
-}
-
-export interface IloadImageAction extends Action {
-    type: ActionName.LOAD_IMAGE;
-    image: HTMLImageElement;
-}
-
-export interface IupdatePointAction extends Action {
-    type: ActionName.UPDATE_POINTS;
-    points: number[];
+    CHANGE_DIVIDE     = "CHANGE_DIVIDE",
+    LOAD_IMAGE        = "LOAD_IMAGE",
+    UPDATE_IMAGE_DATA = "UPDATE_IMAGEDATA",
+    UPDATE_POINTS     = "UPDATE_POINTS",
 }
 
 export interface IchangeDivideAction extends Action {
@@ -23,12 +14,31 @@ export interface IchangeDivideAction extends Action {
     divide: IdivideNums;
 }
 
-export type Action = IupdatePointAction | IloadImageAction | IchangeDivideAction;
+export interface IloadImageAction extends Action {
+    type: ActionName.LOAD_IMAGE;
+    image: HTMLImageElement;
+}
 
-export const updatePointAction = (points: number[]): IupdatePointAction => {
+export interface IupdateImageDataAction extends Action {
+    type: ActionName.UPDATE_IMAGE_DATA;
+    imageData: ImageData;
+}
+
+export interface IupdatePointAction extends Action {
+    type: ActionName.UPDATE_POINTS;
+    points: number[];
+}
+
+export type Action =
+    | IchangeDivideAction
+    | IloadImageAction
+    | IupdateImageDataAction
+    | IupdatePointAction;
+
+export const changeDivideAction = (divide: IdivideNums): IchangeDivideAction => {
     return {
-        points,
-        type: ActionName.UPDATE_POINTS,
+        divide,
+        type: ActionName.CHANGE_DIVIDE,
     };
 };
 
@@ -39,9 +49,16 @@ export const loadImageAction = (image: HTMLImageElement): IloadImageAction => {
     };
 };
 
-export const changeDivideAction = (divide: IdivideNums): IchangeDivideAction => {
+export const updateImageDataAction = (imageData: ImageData): IupdateImageDataAction => {
     return {
-        divide,
-        type: ActionName.CHANGE_DIVIDE,
+        imageData,
+        type: ActionName.UPDATE_IMAGE_DATA,
+    };
+};
+
+export const updatePointAction = (points: number[]): IupdatePointAction => {
+    return {
+        points,
+        type: ActionName.UPDATE_POINTS,
     };
 };
