@@ -5,23 +5,48 @@ import { Dispatch } from "redux";
 import { Action, changeDivideAction } from "../redux/actions";
 import { IdivideNums, Istate } from "../redux/reducers";
 
+interface Iprops {
+    size: number;
+}
+
 interface IstateProps {
     divide: IdivideNums;
     image?: HTMLImageElement;
+    imageData?: ImageData;
 }
 
 interface IdispatchProps {
     changeDivide: (divide: IdivideNums) => Action;
 }
 
-type Props = IstateProps & IdispatchProps;
+type Props = Iprops & IstateProps & IdispatchProps;
 
-class Divide extends React.Component<Props> {
+interface IdivideState {
+    images: string[];
+}
+
+class Divide extends React.Component<Props, IdivideState> {
+    public constructor(props: Props) {
+        super(props);
+        this.state = {
+            images: [],
+        };
+    }
     public render(): React.ReactNode {
         const { divide, image } = this.props;
+        const { images } = this.state;
         if (!image) {
             return null;
         }
+        const results: React.ReactNode[] = images.map((v, i) => {
+            return (
+                <tr key={i} style={{ marginBottom: 5 }}>
+                  <td>
+                    <img src={v} />
+                  </td>
+                </tr>
+            );
+        });
         return (
             <div>
               <h3>Divide</h3>
@@ -54,6 +79,11 @@ class Divide extends React.Component<Props> {
                   <input type="submit" className="btn btn-primary" />
                 </div>
               </form>
+              <table className="table table-hover table-sm">
+                <tbody>
+                  {results}
+                </tbody>
+              </table>
             </div>
         );
     }
@@ -74,7 +104,27 @@ class Divide extends React.Component<Props> {
     private onSubmit(ev: Event) {
         ev.preventDefault();
 
-        // TODO
+        const { imageData, divide, size } = this.props;
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
+        canvas.height = imageData!.height;
+        canvas.width  = imageData!.width;
+        ctx.putImageData(imageData!, 0, 0);
+
+        const images: string[] = [];
+        const h: number = imageData!.height / divide.row;
+        const w: number = imageData!.width  / divide.col;
+        const imgCanvas: HTMLCanvasElement = document.createElement("canvas");
+        const imgCtx: CanvasRenderingContext2D = imgCanvas.getContext("2d")!;
+        imgCanvas.height = imgCanvas.width = size;
+        for (let i = 0; i < divide.row; i++) {
+            for (let j = 0; j < divide.col; j++) {
+                imgCtx.fillRect(0, 0, size, size);
+                imgCtx.drawImage(canvas, w * j, h * i, w, h, 0, 0, size, size);
+                images.push(imgCanvas.toDataURL("image/jpeg"));
+            }
+        }
+        this.setState({ images });
     }
 }
 export default connect(
@@ -82,6 +132,7 @@ export default connect(
         return {
             divide: state.divide,
             image: state.image,
+            imageData: state.imageData,
         };
     },
     (dispath: Dispatch): IdispatchProps => {
