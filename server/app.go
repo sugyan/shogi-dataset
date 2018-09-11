@@ -10,11 +10,20 @@ import (
 
 func init() {
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/upload", uploadHandler)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	if err := renderTemplate(w, "index.html", nil); err != nil {
+		log.Errorf(ctx, "failed to render template: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+}
+
+func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+	if err := renderTemplate(w, "upload.html", nil); err != nil {
 		log.Errorf(ctx, "failed to render template: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
