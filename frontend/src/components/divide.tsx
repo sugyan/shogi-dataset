@@ -49,7 +49,6 @@ class Divide extends React.Component<Props, IdivideState> {
         });
         return (
             <div>
-              <h3>Divide</h3>
               <form onSubmit={this.onSubmit.bind(this)}>
                 <div className="form-group row">
                   <label className="col-sm-3 col-form-label">Rows</label>
@@ -76,7 +75,7 @@ class Divide extends React.Component<Props, IdivideState> {
                   </div>
                 </div>
                 <div className="form-group">
-                  <input type="submit" className="btn btn-primary" />
+                  <input type="submit" className="btn btn-primary" value="Divide" />
                 </div>
               </form>
               <table className="table table-hover table-sm">
