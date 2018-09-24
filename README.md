@@ -6,7 +6,7 @@
 ### Back-end
 
 ```
-$ goapp serve server/app.yaml
+$ dev_appserver.py --application local --default_gcs_bucket_name staging.<APPLICTION ID>.appspot.com server
 ```
 
 ### Front-end
