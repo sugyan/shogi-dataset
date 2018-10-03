@@ -1,3 +1,5 @@
+import * as tf from "@tensorflow/tfjs";
+import { loadFrozenModel } from "@tensorflow/tfjs-converter";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
@@ -73,6 +75,18 @@ class Divide extends React.Component<Props, IdivideState> {
             modal: false,
             targetImage: "",
         };
+    }
+    public componentDidMount() {
+        // TODO
+        const MODEL_URL = "/static/data/tensorflowjs_model.pb";
+        const WEIGHTS_URL = "/static/data/weights_manifest.json";
+        loadFrozenModel(
+            MODEL_URL, WEIGHTS_URL,
+        ).then((model) => {
+            window.console.log(model);
+        }).catch((err: Error) => {
+            window.console.error(err);
+        });
     }
     public render(): React.ReactNode {
         const { divide, image } = this.props;
