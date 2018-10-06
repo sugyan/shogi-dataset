@@ -1,12 +1,11 @@
-import * as tf from "@tensorflow/tfjs";
-import { loadFrozenModel } from "@tensorflow/tfjs-converter";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
 import { Dispatch } from "redux";
 
-import { Action, changeDivideAction } from "../redux/actions";
-import { IdivideNums, Istate } from "../redux/reducers";
+import { changeDivideAction, UploaderAction } from "../redux/actions/uploader";
+import { Istate } from "../redux/reducer";
+import { IdivideNums } from "../redux/reducers/uploader";
 
 interface Ilabel {
     label?: string;
@@ -24,7 +23,7 @@ interface IstateProps {
 }
 
 interface IdispatchProps {
-    changeDivide: (divide: IdivideNums) => Action;
+    changeDivide: (divide: IdivideNums) => UploaderAction;
 }
 
 type Props = Iprops & IstateProps & IdispatchProps;
@@ -75,18 +74,6 @@ class Divide extends React.Component<Props, IdivideState> {
             modal: false,
             targetImage: "",
         };
-    }
-    public componentDidMount() {
-        // TODO
-        const MODEL_URL = "/static/data/tensorflowjs_model.pb";
-        const WEIGHTS_URL = "/static/data/weights_manifest.json";
-        loadFrozenModel(
-            MODEL_URL, WEIGHTS_URL,
-        ).then((model) => {
-            window.console.log(model);
-        }).catch((err: Error) => {
-            window.console.error(err);
-        });
     }
     public render(): React.ReactNode {
         const { divide, image } = this.props;
@@ -220,14 +207,14 @@ class Divide extends React.Component<Props, IdivideState> {
 export default connect(
     (state: Istate): IstateProps => {
         return {
-            divide: state.divide,
-            image: state.image,
-            imageData: state.imageData,
+            divide: state.uploaderReducer.divide,
+            image: state.uploaderReducer.image,
+            imageData: state.uploaderReducer.imageData,
         };
     },
     (dispath: Dispatch): IdispatchProps => {
         return {
-            changeDivide: (divide: IdivideNums): Action => dispath(changeDivideAction(divide)),
+            changeDivide: (divide: IdivideNums): UploaderAction => dispath(changeDivideAction(divide)),
         };
     },
 )(Divide);

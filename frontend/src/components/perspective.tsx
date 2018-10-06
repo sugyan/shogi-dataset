@@ -3,8 +3,9 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 
-import { Action, updateImageDataAction } from "../redux/actions";
-import { IdivideNums, Istate } from "../redux/reducers";
+import { updateImageDataAction, UploaderAction } from "../redux/actions/uploader";
+import { Istate } from "../redux/reducer";
+import { IdivideNums } from "../redux/reducers/uploader";
 
 interface Iprops {
     size: number;
@@ -18,7 +19,7 @@ interface IstateProps {
 }
 
 interface IdispatchProps {
-    updateImageData: (imageData: ImageData) => Action;
+    updateImageData: (imageData: ImageData) => UploaderAction;
 }
 
 type Props = Iprops & IstateProps & IdispatchProps;
@@ -95,15 +96,15 @@ class Perspective extends React.Component<Props> {
 export default connect(
     (state: Istate): IstateProps => {
         return {
-            divide: state.divide,
-            image: state.image,
-            imageData: state.imageData,
-            points: state.points,
+            divide: state.uploaderReducer.divide,
+            image: state.uploaderReducer.image,
+            imageData: state.uploaderReducer.imageData,
+            points: state.uploaderReducer.points,
         };
     },
     (dispatch: Dispatch): IdispatchProps => {
         return {
-            updateImageData: (imageData: ImageData) => dispatch(updateImageDataAction(imageData)),
+            updateImageData: (imageData: ImageData): UploaderAction => dispatch(updateImageDataAction(imageData)),
         };
     },
 )(Perspective);

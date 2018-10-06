@@ -1,13 +1,33 @@
+import * as tf from "@tensorflow/tfjs";
+import { loadFrozenModel } from "@tensorflow/tfjs-converter";
 import * as React from "react";
-import { Provider } from "react-redux";
+import { connect } from "react-redux";
 import { BrowserRouter, Link, Route } from "react-router-dom";
-import { createStore, Store } from "redux";
+import { Dispatch } from "redux";
 
 import Index from "./apps/index";
 import Upload from "./apps/upload";
-import { Istate, reducer } from "./redux/reducers";
+import { CommonAction, loadModelAction } from "./redux/actions/common";
 
-export default class App extends React.Component {
+interface IdispatchProps {
+    loadModel: (model: tf.FrozenModel) => CommonAction;
+}
+
+type Props = IdispatchProps;
+
+class App extends React.Component<Props> {
+    public componentWillMount() {
+        const { loadModel } = this.props;
+        const MODEL_URL = "/static/data/tensorflowjs_model.pb";
+        const WEIGHTS_URL = "/static/data/weights_manifest.json";
+        loadFrozenModel(
+            MODEL_URL, WEIGHTS_URL,
+        ).then((model: tf.FrozenModel) => {
+            loadModel(model);
+        }).catch((err: Error) => {
+            window.console.error(err);
+        });
+    }
     public render() {
         return (
             <BrowserRouter>
@@ -27,10 +47,7 @@ export default class App extends React.Component {
                 <div className="container py-md-3">
                   <div>
                     <Route exact path="/" component={Index} />
-                    <Route exact path="/upload" render={() => {
-                        const store: Store<Istate> = createStore(reducer);
-                        return <Provider store={store}><Upload /></Provider>;
-                    }} />
+                    <Route exact path="/upload" component={Upload} />
                   </div>
                 </div>
               </div>
@@ -38,3 +55,11 @@ export default class App extends React.Component {
         );
     }
 }
+export default connect(
+    (state) => state,
+    (dispatch: Dispatch): IdispatchProps => {
+        return {
+            loadModel: (model: tf.FrozenModel): CommonAction => dispatch(loadModelAction(model)),
+        };
+    },
+)(App);

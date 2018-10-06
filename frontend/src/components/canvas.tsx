@@ -2,15 +2,15 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 
-import { Action, loadImageAction, updatePointAction } from "../redux/actions";
+import { loadImageAction, updatePointAction, UploaderAction } from "../redux/actions/uploader";
 
 interface Iprops {
     size: number;
 }
 
 interface IdispatchProps {
-    loadImage: (data: HTMLImageElement) => Action;
-    updatePoints: (points: number[]) => Action;
+    loadImage: (data: HTMLImageElement) => UploaderAction;
+    updatePoints: (points: number[]) => UploaderAction;
 }
 
 type Props = Iprops & IdispatchProps;
@@ -153,8 +153,8 @@ export default connect<{}, IdispatchProps>(
     (state) => state,
     (dispatch: Dispatch): IdispatchProps => {
         return {
-            loadImage: (image: HTMLImageElement) => dispatch(loadImageAction(image)),
-            updatePoints: (points: number[]) => dispatch(updatePointAction(points)),
+            loadImage: (image: HTMLImageElement): UploaderAction => dispatch(loadImageAction(image)),
+            updatePoints: (points: number[]): UploaderAction => dispatch(updatePointAction(points)),
         };
     },
 )(Canvas);
