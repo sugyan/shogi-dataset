@@ -1,3 +1,5 @@
+import * as tf from "@tensorflow/tfjs";
+import * as tfc from "@tensorflow/tfjs-core";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
@@ -20,6 +22,7 @@ interface IstateProps {
     divide: IdivideNums;
     image?: HTMLImageElement;
     imageData?: ImageData;
+    model?: tf.FrozenModel;
 }
 
 interface IdispatchProps {
@@ -183,13 +186,24 @@ class Divide extends React.Component<Props, IdivideState> {
         const imgCanvas: HTMLCanvasElement = document.createElement("canvas");
         const imgCtx: CanvasRenderingContext2D = imgCanvas.getContext("2d")!;
         imgCanvas.height = imgCanvas.width = size;
+        const inputs: tf.Tensor3D[] = [];
         for (let i = 0; i < divide.row; i++) {
             for (let j = 0; j < divide.col; j++) {
                 imgCtx.fillRect(0, 0, size, size);
                 imgCtx.drawImage(canvas, w * j, h * i, w, h, 0, 0, size, size);
                 images.push(imgCanvas.toDataURL("image/jpeg"));
+                if (this.props.model) {
+                    const t: tf.Tensor3D = tf.tidy(() => tf.fromPixels(imgCanvas).toFloat().div(tf.scalar(255.0)));
+                    inputs.push(t);
+                }
             }
         }
+        // TODO
+        window.setTimeout(() => {
+            (this.props.model!.execute(tf.stack(inputs)) as tfc.Tensor).data().then((value) => {
+                window.console.log(value);
+            });
+        }, 0);
         this.setState({ images });
     }
     private onClickImage(i: number) {
@@ -210,6 +224,7 @@ export default connect(
             divide: state.uploaderReducer.divide,
             image: state.uploaderReducer.image,
             imageData: state.uploaderReducer.imageData,
+            model: state.commonReducer.model,
         };
     },
     (dispath: Dispatch): IdispatchProps => {
