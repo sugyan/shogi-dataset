@@ -1,10 +1,9 @@
-import * as tf from "@tensorflow/tfjs";
-import * as tfc from "@tensorflow/tfjs-core";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
 import { Dispatch } from "redux";
 
+import Manager, { IpredictResult } from "../manager";
 import { changeDivideAction, UploaderAction } from "../redux/actions/uploader";
 import { Istate } from "../redux/reducer";
 import { IdivideNums } from "../redux/reducers/uploader";
@@ -22,7 +21,6 @@ interface IstateProps {
     divide: IdivideNums;
     image?: HTMLImageElement;
     imageData?: ImageData;
-    model?: tf.FrozenModel;
 }
 
 interface IdispatchProps {
@@ -31,8 +29,13 @@ interface IdispatchProps {
 
 type Props = Iprops & IstateProps & IdispatchProps;
 
+interface IdividedImage {
+    src: string;
+    predicted?: IpredictResult[];
+}
+
 interface IdivideState {
-    images: string[];
+    images: IdividedImage[];
     modal: boolean;
     targetImage: string;
 }
@@ -84,11 +87,21 @@ class Divide extends React.Component<Props, IdivideState> {
         if (!image) {
             return null;
         }
-        const results: React.ReactNode[] = images.map((v, i) => {
+        const results: React.ReactNode[] = images.map((v: IdividedImage, i) => {
+            let predicted: React.ReactNode;
+            if (v.predicted) {
+                const lines: string[] = v.predicted.map((p: IpredictResult, j: number) => {
+                    return `${p.label}: ${Math.round(p.score * 10000) / 10000}`;
+                });
+                predicted = <pre>{lines.join("\n")}</pre>;
+            }
             return (
                 <tr key={i} style={{ marginBottom: 5 }} onClick={this.onClickImage.bind(this, i)}>
                   <td>
-                    <img src={v} />
+                    <img src={v.src} />
+                  </td>
+                  <td style={{ width: "100%" }}>
+                    {predicted}
                   </td>
                 </tr>
             );
@@ -180,37 +193,38 @@ class Divide extends React.Component<Props, IdivideState> {
         canvas.width  = imageData!.width;
         ctx.putImageData(imageData!, 0, 0);
 
-        const images: string[] = [];
+        const urls: string[] = [];
+        const inputs: ImageData[] = [];
         const h: number = imageData!.height / divide.row;
         const w: number = imageData!.width  / divide.col;
         const imgCanvas: HTMLCanvasElement = document.createElement("canvas");
         const imgCtx: CanvasRenderingContext2D = imgCanvas.getContext("2d")!;
         imgCanvas.height = imgCanvas.width = size;
-        const inputs: tf.Tensor3D[] = [];
         for (let i = 0; i < divide.row; i++) {
             for (let j = 0; j < divide.col; j++) {
                 imgCtx.fillRect(0, 0, size, size);
                 imgCtx.drawImage(canvas, w * j, h * i, w, h, 0, 0, size, size);
-                images.push(imgCanvas.toDataURL("image/jpeg"));
-                if (this.props.model) {
-                    const t: tf.Tensor3D = tf.tidy(() => tf.fromPixels(imgCanvas).toFloat().div(tf.scalar(255.0)));
-                    inputs.push(t);
-                }
+                inputs.push(imgCtx.getImageData(0, 0, size, size));
+                urls.push(imgCanvas.toDataURL("image/jpeg"));
             }
         }
-        // TODO
-        window.setTimeout(() => {
-            (this.props.model!.execute(tf.stack(inputs)) as tfc.Tensor).data().then((value) => {
-                window.console.log(value);
+        const images: IdividedImage[] = urls.map((src: string): IdividedImage => {
+            return { src };
+        });
+        this.setState({ images }, () => {
+            inputs.forEach((data: ImageData, i: number) => {
+                Manager.getInstance().predict([data]).then((results: IpredictResult[][]) => {
+                    images[i].predicted = results[0];
+                    this.setState({ images });
+                });
             });
-        }, 0);
-        this.setState({ images });
+        });
     }
     private onClickImage(i: number) {
         const { images } = this.state;
         this.setState({
             modal: true,
-            targetImage: images[i],
+            targetImage: images[i].src,
         });
     }
     private toggleModal() {
@@ -224,7 +238,6 @@ export default connect(
             divide: state.uploaderReducer.divide,
             image: state.uploaderReducer.image,
             imageData: state.uploaderReducer.imageData,
-            model: state.commonReducer.model,
         };
     },
     (dispath: Dispatch): IdispatchProps => {
