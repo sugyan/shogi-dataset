@@ -5,7 +5,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.worker\.ts$/,
+                test: /\.?worker\.ts$/,
                 use: {
                     loader: 'worker-loader',
                     options: { inline: true }

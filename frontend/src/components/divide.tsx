@@ -3,10 +3,10 @@ import { connect } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
 import { Dispatch } from "redux";
 
-import Manager, { IpredictResult } from "../manager";
 import { changeDivideAction, UploaderAction } from "../redux/actions/uploader";
 import { Istate } from "../redux/reducer";
 import { IdivideNums } from "../redux/reducers/uploader";
+import WorkerProxy, { IpredictResult } from "../utils/worker-proxy";
 
 interface Ilabel {
     label?: string;
@@ -213,7 +213,7 @@ class Divide extends React.Component<Props, IdivideState> {
         });
         this.setState({ images }, () => {
             inputs.forEach((data: ImageData, i: number) => {
-                Manager.getInstance().predict([data]).then((results: IpredictResult[][]) => {
+                WorkerProxy.predict([data]).then((results: IpredictResult[][]) => {
                     images[i].predicted = results[0];
                     this.setState({ images });
                 });
