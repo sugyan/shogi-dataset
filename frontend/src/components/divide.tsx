@@ -6,6 +6,7 @@ import { Dispatch } from "redux";
 import { changeDivideAction, UploaderAction } from "../redux/actions/uploader";
 import { Istate } from "../redux/reducer";
 import { IdivideNums } from "../redux/reducers/uploader";
+import { labels, labelStringMap } from "../utils/piece";
 import WorkerProxy, { IpredictResult } from "../utils/worker-proxy";
 
 interface Ilabel {
@@ -37,53 +38,28 @@ interface IdividedImage {
 interface IdivideState {
     images: IdividedImage[];
     modal: boolean;
+    selectedLabel: string;
     targetImage: string;
 }
 
 class Divide extends React.Component<Props, IdivideState> {
-    private options: Ilabel[] = [
-        {},
-        { value: "BLANK", label: "空白" },
-        { value: "B_FU", label: "▲歩兵 (B_FU)" },
-        { value: "B_KY", label: "▲香車 (B_KY)" },
-        { value: "B_KE", label: "▲桂馬 (B_KE)" },
-        { value: "B_GI", label: "▲銀将 (B_GI)" },
-        { value: "B_KI", label: "▲金将 (B_KI)" },
-        { value: "B_KA", label: "▲角行 (B_KA)" },
-        { value: "B_HI", label: "▲飛車 (B_HI)" },
-        { value: "B_OU", label: "▲玉将 (B_OU)" },
-        { value: "B_TO", label: "▲と金 (B_TO)" },
-        { value: "B_NY", label: "▲成香 (B_NY)" },
-        { value: "B_NK", label: "▲成桂 (B_NK)" },
-        { value: "B_NG", label: "▲成銀 (B_NG)" },
-        { value: "B_UM", label: "▲竜馬 (B_UM)" },
-        { value: "B_RY", label: "▲竜王 (B_RY)" },
-        { value: "W_FU", label: "△歩兵 (W_FU)" },
-        { value: "W_KY", label: "△香車 (W_KY)" },
-        { value: "W_KE", label: "△桂馬 (W_KE)" },
-        { value: "W_GI", label: "△銀将 (W_GI)" },
-        { value: "W_KI", label: "△金将 (W_KI)" },
-        { value: "W_KA", label: "△角行 (W_KA)" },
-        { value: "W_HI", label: "△飛車 (W_HI)" },
-        { value: "W_OU", label: "△玉将 (W_OU)" },
-        { value: "W_TO", label: "△と金 (W_TO)" },
-        { value: "W_NY", label: "△成香 (W_NY)" },
-        { value: "W_NK", label: "△成桂 (W_NK)" },
-        { value: "W_NG", label: "△成銀 (W_NG)" },
-        { value: "W_UM", label: "△竜馬 (W_UM)" },
-        { value: "W_RY", label: "△竜王 (W_RY)" },
-    ];
+    private options: Ilabel[];
     public constructor(props: Props) {
         super(props);
+        this.options = [{}];
+        Object.keys(labels).forEach((e: string) => {
+            this.options.push({ label: labelStringMap[e as labels], value: e });
+        });
         this.state = {
             images: [],
             modal: false,
+            selectedLabel: "",
             targetImage: "",
         };
     }
     public render(): React.ReactNode {
         const { divide, image } = this.props;
-        const { images, modal, targetImage } = this.state;
+        const { images, modal, selectedLabel, targetImage } = this.state;
         if (!image) {
             return null;
         }
@@ -114,25 +90,36 @@ class Divide extends React.Component<Props, IdivideState> {
         return (
             <div>
               <Modal isOpen={modal} toggle={this.toggleModal.bind(this)} backdrop={true}>
-                <ModalBody>
-                  <div className="row">
-                    <div className="col-md-3">
-                      <img src={targetImage} />
+                <form onSubmit={this.onSubmitUpload.bind(this)}>
+                  <ModalBody>
+                    <div className="row">
+                      <div className="col-md-3">
+                        <img src={targetImage} />
+                      </div>
+                      <div className="col-md-9">
+                        <div className="form-group">
+                          <label>Label</label>
+                          <select
+                            className="form-control"
+                            onChange={this.onChangeSelect.bind(this)}
+                            value={selectedLabel}>
+                            {options}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                    <div className="col-md-9">
-                      <select className="form-control">
-                        {options}
-                      </select>
-                    </div>
-                  </div>
-                </ModalBody>
-                <ModalFooter>
-                  <Button color="secondary" onClick={this.toggleModal.bind(this)}>
-                    Cancel
-                  </Button>
-                </ModalFooter>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button color="primary" disabled={selectedLabel === ""}>
+                      Upload
+                    </Button>
+                    <Button color="secondary" onClick={this.toggleModal.bind(this)}>
+                      Cancel
+                    </Button>
+                  </ModalFooter>
+                </form>
               </Modal>
-              <form onSubmit={this.onSubmit.bind(this)}>
+              <form onSubmit={this.onSubmitDivide.bind(this)}>
                 <div className="form-group row">
                   <label className="col-sm-3 col-form-label">Rows</label>
                   <div className="col-sm-9">
@@ -183,7 +170,7 @@ class Divide extends React.Component<Props, IdivideState> {
         }
         changeDivide(nextDivide);
     }
-    private onSubmit(ev: Event) {
+    private onSubmitDivide(ev: Event) {
         ev.preventDefault();
 
         const { imageData, divide, size } = this.props;
@@ -218,6 +205,29 @@ class Divide extends React.Component<Props, IdivideState> {
                     this.setState({ images });
                 });
             });
+        });
+    }
+    private onChangeSelect(ev: Event) {
+        const select: HTMLSelectElement = ev.target as HTMLSelectElement;
+        this.setState({
+            selectedLabel: select.value,
+        });
+    }
+    private onSubmitUpload(ev: Event) {
+        ev.preventDefault();
+
+        const { selectedLabel, targetImage } = this.state;
+        fetch(
+            "/api/upload", {
+                body: JSON.stringify({
+                    selectedLabel, targetImage,
+                }),
+                method: "POST",
+            },
+        ).then((res) => {
+            window.console.log(res);
+        }).catch((err) => {
+            window.console.error(err);
         });
     }
     private onClickImage(i: number) {
