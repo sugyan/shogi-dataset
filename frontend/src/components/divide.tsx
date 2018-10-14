@@ -33,13 +33,15 @@ type Props = Iprops & IstateProps & IdispatchProps;
 interface IdividedImage {
     src: string;
     predicted?: IpredictResult[];
+    uploaded: boolean;
 }
 
 interface IdivideState {
     images: IdividedImage[];
     modal: boolean;
     selectedLabel: string;
-    targetImage: string;
+    targetImage?: number;
+    uploading: boolean;
 }
 
 class Divide extends React.Component<Props, IdivideState> {
@@ -54,12 +56,12 @@ class Divide extends React.Component<Props, IdivideState> {
             images: [],
             modal: false,
             selectedLabel: "",
-            targetImage: "",
+            uploading: false,
         };
     }
     public render(): React.ReactNode {
         const { divide, image } = this.props;
-        const { images, modal, selectedLabel, targetImage } = this.state;
+        const { images, modal, selectedLabel, targetImage, uploading } = this.state;
         if (!image) {
             return null;
         }
@@ -72,7 +74,12 @@ class Divide extends React.Component<Props, IdivideState> {
                 predicted = <pre>{lines.join("\n")}</pre>;
             }
             return (
-                <tr key={i} style={{ marginBottom: 5 }} onClick={this.onClickImage.bind(this, i)}>
+                <tr
+                  key={i}
+                  className={v.uploaded ? "table-success" : ""}
+                  style={{ marginBottom: 5 }}
+                  onClick={this.onClickImage.bind(this, i)}
+                >
                   <td>
                     <img src={v.src} />
                   </td>
@@ -94,7 +101,7 @@ class Divide extends React.Component<Props, IdivideState> {
                   <ModalBody>
                     <div className="row">
                       <div className="col-md-3">
-                        <img src={targetImage} />
+                        <img src={targetImage !== undefined ? images[targetImage].src : ""} />
                       </div>
                       <div className="col-md-9">
                         <div className="form-group">
@@ -110,7 +117,7 @@ class Divide extends React.Component<Props, IdivideState> {
                     </div>
                   </ModalBody>
                   <ModalFooter>
-                    <Button color="primary" disabled={selectedLabel === ""}>
+                    <Button color="primary" disabled={selectedLabel === "" || uploading}>
                       Upload
                     </Button>
                     <Button color="secondary" onClick={this.toggleModal.bind(this)}>
@@ -196,7 +203,7 @@ class Divide extends React.Component<Props, IdivideState> {
             }
         }
         const images: IdividedImage[] = urls.map((src: string): IdividedImage => {
-            return { src };
+            return { src, uploaded: false };
         });
         this.setState({ images }, () => {
             inputs.forEach((data: ImageData, i: number) => {
@@ -216,25 +223,36 @@ class Divide extends React.Component<Props, IdivideState> {
     private onSubmitUpload(ev: Event) {
         ev.preventDefault();
 
-        const { selectedLabel, targetImage } = this.state;
+        const { images, selectedLabel, targetImage } = this.state;
         fetch(
             "/api/upload", {
                 body: JSON.stringify({
-                    selectedLabel, targetImage,
+                    image: images[targetImage!].src,
+                    label: selectedLabel,
                 }),
                 method: "POST",
             },
-        ).then((res) => {
-            window.console.log(res);
+        ).then((res: Response) => {
+            if (res.ok) {
+                images[targetImage!].uploaded = true;
+                this.setState({
+                    images,
+                    modal: false,
+                    selectedLabel: "",
+                });
+            }
         }).catch((err) => {
             window.console.error(err);
+        }).finally(() => {
+            this.setState({ uploading: false });
         });
+        this.setState({ uploading: true });
     }
     private onClickImage(i: number) {
         const { images } = this.state;
         this.setState({
             modal: true,
-            targetImage: images[i].src,
+            targetImage: i,
         });
     }
     private toggleModal() {

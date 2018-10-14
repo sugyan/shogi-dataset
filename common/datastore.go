@@ -13,6 +13,7 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
 // constant values
@@ -24,6 +25,7 @@ const (
 type Image struct {
 	ImageURL  string    `json:"imageUrl"`
 	Piece     string    `json:"label"`
+	UserID    string    `json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -49,6 +51,10 @@ func RegisterImage(ctx context.Context, imageData []byte, piece string) (*datast
 		return nil, err
 	}
 	log.Infof(ctx, "stored image: %s", imageURL)
+	u := user.Current(ctx)
+	if u != nil {
+		image.UserID = u.ID
+	}
 	image.ImageURL = imageURL
 	image.Piece = piece
 	image.UpdatedAt = time.Now()
