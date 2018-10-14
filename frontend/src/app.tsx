@@ -1,6 +1,7 @@
 import * as React from "react";
 import { BrowserRouter, Link, Route } from "react-router-dom";
 
+import Image from "./apps/image";
 import Index from "./apps/index";
 import Upload from "./apps/upload";
 
@@ -24,6 +25,7 @@ export default class App extends React.Component {
                 <div className="container py-md-3">
                   <div>
                     <Route exact path="/" component={Index} />
+                    <Route exact path="/image/:id" component={Image} />
                     <Route exact path="/upload" component={Upload} />
                   </div>
                 </div>

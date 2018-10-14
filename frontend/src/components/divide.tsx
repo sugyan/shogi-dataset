@@ -241,8 +241,8 @@ class Divide extends React.Component<Props, IdivideState> {
                     selectedLabel: "",
                 });
             }
-        }).catch((err) => {
-            window.console.error(err);
+        }).catch((err: Error) => {
+            window.console.error(err.message);
         }).finally(() => {
             this.setState({ uploading: false });
         });

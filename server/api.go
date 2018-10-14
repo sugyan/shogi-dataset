@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/sugyan/shogi-dataset/common"
 	"google.golang.org/appengine"
@@ -13,9 +14,18 @@ import (
 	"google.golang.org/appengine/log"
 )
 
+type image struct {
+	ID        string    `json:"id,omitempty"`
+	ImageURL  string    `json:"imageUrl"`
+	Label     string    `json:"label"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 func init() {
 	apiHandler := http.NewServeMux()
 	apiHandler.HandleFunc("/index", apiIndexHandler)
+	apiHandler.HandleFunc("/image", apiImageHandler)
 	apiHandler.HandleFunc("/upload", apiUploadHandler)
 	http.Handle("/api/", http.StripPrefix("/api", apiHandler))
 }
@@ -30,6 +40,40 @@ func apiIndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := json.NewEncoder(w).Encode(results); err != nil {
+		log.Errorf(ctx, "failed to render json: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+}
+
+func apiImageHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	key, err := datastore.DecodeKey(id)
+	if err != nil {
+		log.Errorf(ctx, "failed to decode id: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	result := &common.Image{}
+	if err := datastore.Get(ctx, key, result); err != nil {
+		log.Errorf(ctx, "failed to get image: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	image := &image{
+		ImageURL:  result.ImageURL,
+		Label:     result.Label,
+		CreatedAt: result.CreatedAt,
+		UpdatedAt: result.UpdatedAt,
+	}
+	if err := json.NewEncoder(w).Encode(image); err != nil {
 		log.Errorf(ctx, "failed to render json: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -62,19 +106,25 @@ func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func fetchImages(ctx context.Context) ([]*common.Image, error) {
-	results := []*common.Image{}
-	iter := datastore.NewQuery(common.KindImage).Order("-UpdatedAt").Run(ctx)
+func fetchImages(ctx context.Context) ([]*image, error) {
+	results := []*image{}
+	iter := datastore.NewQuery(common.KindImage).Order("-UpdatedAt").Limit(20).Run(ctx)
 	for {
-		image := &common.Image{}
-		_, err := iter.Next(image)
+		result := &common.Image{}
+		key, err := iter.Next(result)
 		if err == datastore.Done {
 			break
 		}
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, image)
+		results = append(results, &image{
+			ID:        key.Encode(),
+			ImageURL:  result.ImageURL,
+			Label:     result.Label,
+			CreatedAt: result.CreatedAt,
+			UpdatedAt: result.UpdatedAt,
+		})
 	}
 	return results, nil
 }

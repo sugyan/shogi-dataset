@@ -23,15 +23,15 @@ const (
 
 // Image type
 type Image struct {
-	ImageURL  string    `json:"imageUrl"`
-	Piece     string    `json:"label"`
-	UserID    string    `json:"-"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ImageURL  string
+	Label     string
+	UserID    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // RegisterImage function
-func RegisterImage(ctx context.Context, imageData []byte, piece string) (*datastore.Key, error) {
+func RegisterImage(ctx context.Context, imageData []byte, label string) (*datastore.Key, error) {
 	hash := md5.New()
 	hash.Write(imageData)
 	digest := hex.EncodeToString(hash.Sum(nil))
@@ -56,7 +56,7 @@ func RegisterImage(ctx context.Context, imageData []byte, piece string) (*datast
 		image.UserID = u.ID
 	}
 	image.ImageURL = imageURL
-	image.Piece = piece
+	image.Label = label
 	image.UpdatedAt = time.Now()
 	key, err = datastore.Put(ctx, key, image)
 	if err != nil {
