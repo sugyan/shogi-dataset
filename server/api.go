@@ -16,7 +16,7 @@ import (
 
 type image struct {
 	ID        string    `json:"id,omitempty"`
-	ImageURL  string    `json:"imageUrl"`
+	ImageURL  string    `json:"image_url"`
 	Label     string    `json:"label"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

@@ -1,12 +1,15 @@
+import moment from "moment";
 import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
+
+import { labels, labelStringMap } from "../utils/piece";
 
 type ImageProps = RouteComponentProps<{ id: string }>;
 
 interface Iimage {
-    imageUrl: string;
+    image_url: string;
     label: string;
-    createdAt: string;
+    created_at: string;
 }
 
 type ImageState = Iimage;
@@ -15,8 +18,8 @@ class Image extends React.Component<ImageProps, ImageState> {
     public constructor(props: ImageProps) {
         super(props);
         this.state = {
-            createdAt: "",
-            imageUrl: "",
+            created_at: "",
+            image_url: "",
             label: "",
         };
     }
@@ -34,11 +37,23 @@ class Image extends React.Component<ImageProps, ImageState> {
         });
     }
     public render() {
-        const { imageUrl, label } = this.state;
+        const { image_url, label, created_at } = this.state;
+        const createdAt: moment.Moment = moment(created_at);
+        if (!image_url) {
+            return null;
+        }
         return (
             <div>
-              <img src={imageUrl} />
-              <label>{label}</label>
+              <img src={image_url} />
+              <hr />
+              <dl>
+                <dt>Image URL</dt>
+                <dd><a href={image_url} target="_blank">{image_url}</a></dd>
+                <dt>Label</dt>
+                <dd>{labelStringMap[label as labels]} (<pre style={{ display: "inline" }}>{label}</pre>)</dd>
+                <dt>Created at</dt>
+                <dd>{createdAt.format(`${moment.HTML5_FMT.DATE} ${moment.HTML5_FMT.TIME_SECONDS}`)}</dd>
+              </dl>
             </div>
         );
     }

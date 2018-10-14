@@ -1,10 +1,13 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 
+import { labels, labelStringMap } from "../utils/piece";
+
 interface Iimage {
     id: number;
-    imageUrl: string;
+    image_url: string;
     label: string;
+    created_at: string;
 }
 
 interface IindexState {
@@ -37,10 +40,10 @@ export default class Index extends React.Component<any, IindexState> {
                   style={{ width: 96 + 2, float: "left", marginRight: 5 }}
                 >
                   <Link to={`/image/${image.id}`}>
-                    <img src={image.imageUrl} className="card-img-top" />
+                    <img src={image.image_url} className="card-img-top" />
                   </Link>
                   <div className="card-body">
-                    {image.label}
+                    {labelStringMap[image.label as labels]}
                   </div>
                 </div>
             );
