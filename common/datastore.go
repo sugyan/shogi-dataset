@@ -42,11 +42,12 @@ func RegisterImage(ctx context.Context, imageData []byte, label string) (*datast
 		if err == datastore.ErrNoSuchEntity {
 			image.CreatedAt = time.Now()
 		} else {
+			log.Errorf(ctx, "failed to get image entity")
 			return nil, err
 		}
 	}
 
-	imageURL, err := storeImage(ctx, digest, imageData)
+	imageURL, err := storeObject(ctx, digest, imageData)
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +61,28 @@ func RegisterImage(ctx context.Context, imageData []byte, label string) (*datast
 	image.UpdatedAt = time.Now()
 	key, err = datastore.Put(ctx, key, image)
 	if err != nil {
+		log.Errorf(ctx, "failed to put image entity")
 		return nil, err
 	}
 	log.Infof(ctx, "stored entity: %s", key.Encode())
 	return key, nil
 }
 
-func storeImage(ctx context.Context, fileName string, data []byte) (string, error) {
+// DeleteImage function
+func DeleteImage(ctx context.Context, key *datastore.Key) error {
+	log.Infof(ctx, "key: %v", key.StringID())
+	if err := deleteObject(ctx, key.StringID()); err != nil {
+		log.Errorf(ctx, "failed to delete object: %s", err.Error())
+		return err
+	}
+	if err := datastore.Delete(ctx, key); err != nil {
+		log.Errorf(ctx, "failed to delete entity: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func storeObject(ctx context.Context, fileName string, data []byte) (string, error) {
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return "", err
@@ -92,4 +108,21 @@ func storeImage(ctx context.Context, fileName string, data []byte) (string, erro
 		return "", err
 	}
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, fileName), nil
+}
+
+func deleteObject(ctx context.Context, fileName string) error {
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	bucketName, err := file.DefaultBucketName(ctx)
+	if err != nil {
+		return err
+	}
+	if err := client.Bucket(bucketName).Object(fileName).Delete(ctx); err != nil {
+		return err
+	}
+	return nil
 }

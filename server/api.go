@@ -25,7 +25,7 @@ type image struct {
 func init() {
 	apiHandler := http.NewServeMux()
 	apiHandler.HandleFunc("/index", apiIndexHandler)
-	apiHandler.HandleFunc("/image", apiImageHandler)
+	apiHandler.HandleFunc("/image/", apiImageHandler)
 	apiHandler.HandleFunc("/upload", apiUploadHandler)
 	http.Handle("/api/", http.StripPrefix("/api", apiHandler))
 }
@@ -49,23 +49,38 @@ func apiIndexHandler(w http.ResponseWriter, r *http.Request) {
 func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	id := r.URL.Query().Get("id")
-	if id == "" {
-		http.NotFound(w, r)
-		return
-	}
-
+	id := strings.TrimPrefix(r.URL.Path, "/image/")
 	key, err := datastore.DecodeKey(id)
 	if err != nil {
 		log.Errorf(ctx, "failed to decode id: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.NotFound(w, r)
 		return
 	}
+	switch r.Method {
+	case "GET":
+		err := getImage(ctx, key, w)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	case "DELETE":
+		err := common.DeleteImage(ctx, key)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	default:
+		log.Errorf(ctx, "method %s is not supported", r.Method)
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func getImage(ctx context.Context, key *datastore.Key, w http.ResponseWriter) error {
 	result := &common.Image{}
 	if err := datastore.Get(ctx, key, result); err != nil {
 		log.Errorf(ctx, "failed to get image: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		return err
 	}
 	image := &image{
 		ImageURL:  result.ImageURL,
@@ -75,9 +90,9 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewEncoder(w).Encode(image); err != nil {
 		log.Errorf(ctx, "failed to render json: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		return err
 	}
+	return nil
 }
 
 func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
