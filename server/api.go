@@ -58,14 +58,22 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.Method {
 	case "GET":
-		err := getImage(ctx, key, w)
-		if err != nil {
+		if err := getImage(ctx, key, w); err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 	case "DELETE":
-		err := common.DeleteImage(ctx, key)
-		if err != nil {
+		if err := common.DeleteImage(ctx, key); err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	case "PUT":
+		if err := r.ParseForm(); err != nil {
+			log.Errorf(ctx, "failed to parse request form: %s", err.Error())
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		if err := putImage(ctx, key, r.Form.Get("label")); err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -79,7 +87,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 func getImage(ctx context.Context, key *datastore.Key, w http.ResponseWriter) error {
 	result := &common.Image{}
 	if err := datastore.Get(ctx, key, result); err != nil {
-		log.Errorf(ctx, "failed to get image: %s", err.Error())
+		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
 		return err
 	}
 	image := &image{
@@ -90,6 +98,21 @@ func getImage(ctx context.Context, key *datastore.Key, w http.ResponseWriter) er
 	}
 	if err := json.NewEncoder(w).Encode(image); err != nil {
 		log.Errorf(ctx, "failed to render json: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
+func putImage(ctx context.Context, key *datastore.Key, label string) error {
+	image := &common.Image{}
+	if err := datastore.Get(ctx, key, image); err != nil {
+		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
+		return err
+	}
+	image.Label = label
+	image.UpdatedAt = time.Now()
+	if _, err := datastore.Put(ctx, key, image); err != nil {
+		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
 		return err
 	}
 	return nil

@@ -59,11 +59,23 @@ class Image extends React.Component<ImageProps, ImageState> {
                 <dd>{updatedAt.format(`${moment.HTML5_FMT.DATE} ${moment.HTML5_FMT.TIME_SECONDS}`)}</dd>
               </dl>
               <hr />
-              <button className="btn btn-danger" onClick={this.onClickDeleteButton.bind(this)}>
+              <button
+                className="btn btn-info"
+                style={{ marginRight: 10 }}
+                onClick={this.onClickEditButton.bind(this)}>
+                Edit
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={this.onClickDeleteButton.bind(this)}>
                 Delete
               </button>
             </div>
         );
+    }
+    private onClickEditButton() {
+        const { match, history } = this.props;
+        history.push(`/image/${match.params.id}/edit`);
     }
     private onClickDeleteButton() {
         const { match, history } = this.props;

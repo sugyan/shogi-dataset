@@ -21,7 +21,7 @@ export default class Index extends React.Component<any, IindexState> {
             recentImages: [],
         };
     }
-    public componentWillMount() {
+    public componentDidMount() {
         fetch(
             "/api/index",
         ).then((res) => res.json()).then((results: Iimage[]) => {

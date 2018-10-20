@@ -48,10 +48,12 @@ class Divide extends React.Component<Props, IdivideState> {
     private options: Ilabel[];
     public constructor(props: Props) {
         super(props);
-        this.options = [{}];
-        Object.keys(labels).forEach((e: string) => {
-            this.options.push({ label: labelStringMap[e as labels], value: e });
-        });
+        this.options = [{}].concat(Object.values(labels).map((e: labels): Ilabel => {
+            return {
+                label: labelStringMap[e],
+                value: e,
+            };
+        }));
         this.state = {
             images: [],
             modal: false,
@@ -249,7 +251,6 @@ class Divide extends React.Component<Props, IdivideState> {
         this.setState({ uploading: true });
     }
     private onClickImage(i: number) {
-        const { images } = this.state;
         this.setState({
             modal: true,
             targetImage: i,
