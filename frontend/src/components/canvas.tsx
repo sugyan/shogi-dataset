@@ -28,54 +28,39 @@ class Canvas extends React.Component<Props> {
     private points: Ipoint[] = [];
     private drag: number = -1;
     private imageData?: ImageData;
-    constructor(props: any) {
+    constructor(props: Props) {
         super(props);
         this.canvas = React.createRef<HTMLCanvasElement>();
     }
     public componentDidMount(): void {
         const { size } = this.props;
         const canvas: HTMLCanvasElement = this.canvas.current!;
+        this.ctx = canvas.getContext("2d");
         canvas.height = canvas.width = size;
         canvas.addEventListener("mousedown", this.onMouseDown.bind(this));
         canvas.addEventListener("mousemove", this.onMouseMove.bind(this));
         canvas.addEventListener("mouseup",   this.onMouseUp.bind(this));
-
-        this.ctx = canvas.getContext("2d");
-        this.loadImage();
     }
     public render(): React.ReactNode {
         return (
             <div>
               <h2>Image</h2>
-              <canvas ref={this.canvas} style={{ width: "100%", border: "1px solid gray" }} />
+              <canvas
+                ref={this.canvas}
+                style={{ width: "100%", border: "1px solid gray", backgroundColor: "lightgray" }} />
+              <div className="custom-file">
+                <input
+                  type="file"
+                  className="custom-file-input"
+                  onChange={this.onChangeFile.bind(this)}
+                  accept="image/*"
+                  multiple={false} />
+                <label className="custom-file-label">Choose file</label>
+              </div>
             </div>
         );
     }
-    private loadImage(): void {
-        const { size, loadImage } = this.props;
-        const ctx: CanvasRenderingContext2D = this.ctx!;
-        ctx.fillStyle = "lightgray";
-        ctx.fillRect(0, 0, size, size);
-
-        const img: HTMLImageElement = new Image();
-        img.onload = (ev: Event) => {
-            const [h, w] = [img.height, img.width];
-            const scale: number = Math.max(h / size, w / size);
-            this.offsetX = (size - w / scale) / 2.0;
-            this.offsetY = (size - h / scale) / 2.0;
-            ctx.drawImage(img, this.offsetX, this.offsetY, w / scale, h / scale);
-            this.imageData = ctx.getImageData(0, 0, size, size);
-            this.onLoadImage();
-
-            const imageCanvas: HTMLCanvasElement = document.createElement("canvas");
-            imageCanvas.width = img.width;
-            imageCanvas.height = img.height;
-            imageCanvas.getContext("2d")!.drawImage(img, 0, 0);
-            loadImage(img);
-        };
-        // img.src = "/static/img/example.jpg";
-    }
-    private draw(): void {
+    private drawPoints(): void {
         const ctx: CanvasRenderingContext2D = this.ctx!;
         ctx.putImageData(this.imageData!, 0, 0);
         // line
@@ -99,18 +84,6 @@ class Canvas extends React.Component<Props> {
             ctx.closePath();
         });
     }
-    private onLoadImage(): void {
-        const { size } = this.props;
-        const w: number = size - this.offsetX * 2.0;
-        const h: number = size - this.offsetY * 2.0;
-        this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((v): Ipoint => {
-            return {
-                x: this.offsetX + v[0] * w,
-                y: this.offsetY + v[1] * h,
-            };
-        });
-        this.draw();
-    }
     private onMouseDown(ev: MouseEvent): void {
         const target: Ipoint = this.calcMousePoint(ev);
         this.drag = this.points.findIndex((p: Ipoint): boolean => {
@@ -121,10 +94,11 @@ class Canvas extends React.Component<Props> {
         if (this.drag === -1) {
             return;
         }
-        this.draw();
-        this.updatePoints(ev);
+        this.drawPoints();
+        this.points[this.drag] = this.calcMousePoint(ev);
+        this.updatePoints();
     }
-    private onMouseUp(ev: Event): void {
+    private onMouseUp(): void {
         this.drag = -1;
     }
     private calcMousePoint(ev: MouseEvent): Ipoint {
@@ -136,9 +110,8 @@ class Canvas extends React.Component<Props> {
             y: (ev.clientY - rect.top) * scale,
         };
     }
-    private updatePoints(ev: MouseEvent) {
+    private updatePoints() {
         const { size, updatePoints } = this.props;
-        this.points[this.drag] = this.calcMousePoint(ev);
         updatePoints(
             this.points
                 .map((p: Ipoint) => [
@@ -147,9 +120,45 @@ class Canvas extends React.Component<Props> {
                 ])
                 .reduce((prev, curr) => prev.concat(curr), []));
     }
+    private onChangeFile(ev: Event) {
+        const files: FileList = (ev.target as HTMLInputElement).files!;
+        if (files.length < 1) {
+            return;
+        }
+        const file: File = files.item(0)!;
+        const reader: FileReader = new FileReader();
+        reader.onload = this.onLoadFile.bind(this, reader);
+        reader.readAsDataURL(file);
+    }
+    private onLoadFile(reader: FileReader) {
+        const { size, loadImage, updatePoints } = this.props;
+        this.ctx!.fillStyle = "lightgray";
+        this.ctx!.fillRect(0, 0, size, size);
+        const img: HTMLImageElement = new Image();
+        img.onload = () => {
+            const [h, w] = [img.height, img.width];
+            const scale: number = Math.max(h / size, w / size);
+            this.offsetX = (size - w / scale) / 2.0;
+            this.offsetY = (size - h / scale) / 2.0;
+            this.ctx!.drawImage(img, this.offsetX, this.offsetY, w / scale, h / scale);
+            this.imageData = this.ctx!.getImageData(0, 0, size, size);
+            const W: number = size - this.offsetX * 2.0;
+            const H: number = size - this.offsetY * 2.0;
+            this.points = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]].map((v): Ipoint => {
+                return {
+                    x: this.offsetX + v[0] * W,
+                    y: this.offsetY + v[1] * H,
+                };
+            });
+            this.drawPoints();
+            this.updatePoints();
+            loadImage(img);
+        };
+        img.src = reader.result as string;
+    }
 }
 
-export default connect<{}, IdispatchProps>(
+export default connect(
     (state) => state,
     (dispatch: Dispatch): IdispatchProps => {
         return {
