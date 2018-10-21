@@ -10,29 +10,48 @@ interface Iimage {
     created_at: string;
 }
 
-interface IindexState {
-    recentImages: Iimage[];
+interface IindexResults {
+    recent: Iimage[];
+    total?: { [label in labels]: number };
 }
+
+type IindexState = IindexResults;
 
 export default class Index extends React.Component<any, IindexState> {
     public constructor(props: any) {
         super(props);
         this.state = {
-            recentImages: [],
+            recent: [],
         };
     }
     public componentDidMount() {
         fetch(
             "/api/index",
-        ).then((res) => res.json()).then((results: Iimage[]) => {
-            this.setState({ recentImages: results });
+        ).then((res) => res.json()).then((results: IindexResults) => {
+            this.setState({ ...results });
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
     }
     public render() {
-        const { recentImages } = this.state;
-        const images = recentImages.map((image: Iimage, i: number) => {
+        const { recent, total } = this.state;
+        let totalTable: React.ReactNode;
+        if (total) {
+            const rows = Object.values(labels).map((e: labels, i: number) => {
+                return (
+                  <tr key={i}>
+                    <td>{labelStringMap[e]}</td>
+                    <td>{total[e]}</td>
+                  </tr>
+                );
+            });
+            totalTable = (
+                <table className="table table-sm table-hover">
+                  <tbody>{rows}</tbody>
+                </table>
+            );
+        }
+        const images = recent.map((image: Iimage, i: number) => {
             return (
                 <div
                   key={i}
@@ -49,7 +68,14 @@ export default class Index extends React.Component<any, IindexState> {
             );
         });
         return (
-            <div>{images}</div>
+            <div className="row">
+              <div className="col-sm">
+                {totalTable}
+              </div>
+              <div className="col-sm">
+                {images}
+              </div>
+            </div>
         );
     }
 }

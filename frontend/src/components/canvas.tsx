@@ -131,7 +131,7 @@ class Canvas extends React.Component<Props> {
         reader.readAsDataURL(file);
     }
     private onLoadFile(reader: FileReader) {
-        const { size, loadImage, updatePoints } = this.props;
+        const { size, loadImage } = this.props;
         this.ctx!.fillStyle = "lightgray";
         this.ctx!.fillRect(0, 0, size, size);
         const img: HTMLImageElement = new Image();

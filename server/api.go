@@ -33,13 +33,29 @@ func init() {
 func apiIndexHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	results, err := fetchImages(ctx)
+	result := struct {
+		Total  *common.Total `json:"total"`
+		Recent []*image      `json:"recent"`
+	}{}
+
+	// total numbers
+	total, err := common.GetTotal(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to fetch total: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	result.Total = total
+	// recent updated images
+	recent, err := fetchRecentImages(ctx)
 	if err != nil {
 		log.Errorf(ctx, "failed to fetch images: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	if err := json.NewEncoder(w).Encode(results); err != nil {
+	result.Recent = recent
+
+	if err := json.NewEncoder(w).Encode(result); err != nil {
 		log.Errorf(ctx, "failed to render json: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -144,7 +160,7 @@ func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func fetchImages(ctx context.Context) ([]*image, error) {
+func fetchRecentImages(ctx context.Context) ([]*image, error) {
 	results := []*image{}
 	iter := datastore.NewQuery(common.KindImage).Order("-UpdatedAt").Limit(20).Run(ctx)
 	for {
