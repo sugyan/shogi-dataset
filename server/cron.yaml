@@ -1,0 +1,4 @@
+cron:
+- description: "daily count update"
+  url: /count
+  schedule: every 24 hours

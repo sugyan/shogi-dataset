@@ -89,7 +89,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		if err := putImage(ctx, key, r.Form.Get("label")); err != nil {
+		if err := common.EditImage(ctx, key, r.Form.Get("label")); err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -114,21 +114,6 @@ func getImage(ctx context.Context, key *datastore.Key, w http.ResponseWriter) er
 	}
 	if err := json.NewEncoder(w).Encode(image); err != nil {
 		log.Errorf(ctx, "failed to render json: %s", err.Error())
-		return err
-	}
-	return nil
-}
-
-func putImage(ctx context.Context, key *datastore.Key, label string) error {
-	image := &common.Image{}
-	if err := datastore.Get(ctx, key, image); err != nil {
-		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
-		return err
-	}
-	image.Label = label
-	image.UpdatedAt = time.Now()
-	if _, err := datastore.Put(ctx, key, image); err != nil {
-		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
 		return err
 	}
 	return nil
