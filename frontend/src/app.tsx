@@ -26,8 +26,7 @@ export default class App extends React.Component {
                 <div className="container py-md-3">
                   <div>
                     <Route exact path="/" component={Index} />
-                    <Route exact path="/image/:id" component={Image} />
-                    <Route exact path="/image/:id/edit" component={ImageEdit} />
+                    <Route path="/image" component={Image} />
                     <Route exact path="/upload" component={Upload} />
                   </div>
                 </div>

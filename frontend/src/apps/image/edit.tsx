@@ -1,7 +1,7 @@
 import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
 
-import { labels, labelStringMap } from "../utils/piece";
+import { labels, labelStringMap } from "../../utils/piece";
 
 interface Ilabel {
     label?: string;
@@ -46,6 +46,7 @@ class ImageEdit extends React.Component<ImageEditProps, ImageEditState> {
     }
     public render() {
         const { image_url, label } = this.state;
+        const selectInput: string = "selectLabel";
         const options = this.options.map((option: Ilabel, i: number) => {
             return (
                 <option key={i} value={option.value}>{option.label}</option>
@@ -56,12 +57,16 @@ class ImageEdit extends React.Component<ImageEditProps, ImageEditState> {
               <img src={image_url}/>
               <hr />
               <form onSubmit={this.onSubmit.bind(this)}>
-                <select
-                  className="form-control"
-                  onChange={this.onChangeSelect.bind(this)}
-                  value={label}>
-                  {options}
-                </select>
+                <div className="form-group">
+                  <label htmlFor={selectInput}>label</label>
+                  <select
+                    id={selectInput}
+                    className="form-control"
+                    onChange={this.onChangeSelect.bind(this)}
+                    value={label}>
+                    {options}
+                  </select>
+                </div>
                 <hr />
                 <button type="submit" className="btn btn-primary">
                   Submit

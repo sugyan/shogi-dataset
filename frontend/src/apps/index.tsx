@@ -56,7 +56,7 @@ export default class Index extends React.Component<any, IindexState> {
                 <div
                   key={i}
                   className="card"
-                  style={{ width: 96 + 2, float: "left", marginRight: 5 }}
+                  style={{ width: 96 + 2, float: "left", marginRight: 5, marginBottom: 10 }}
                 >
                   <Link to={`/image/${image.id}`}>
                     <img src={image.image_url} className="card-img-top" />
