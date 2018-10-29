@@ -1,21 +1,19 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 
-import { labels, labelStringMap } from "../utils/piece";
+import { labels, labelStringMap, numbers } from "../utils/piece";
 
 interface Iimage {
-    id: number;
+    id: string;
     image_url: string;
     label: string;
     created_at: string;
 }
 
-interface IindexResults {
+interface IindexState {
     recent: Iimage[];
-    total?: { [label in labels]: number };
+    total?: numbers;
 }
-
-type IindexState = IindexResults;
 
 export default class Index extends React.Component<any, IindexState> {
     public constructor(props: any) {
@@ -27,21 +25,36 @@ export default class Index extends React.Component<any, IindexState> {
     public componentDidMount() {
         fetch(
             "/api/index",
-        ).then((res) => res.json()).then((results: IindexResults) => {
-            this.setState({ ...results });
+        ).then((res: Response) => {
+            return res.json();
+        }).then((total: numbers) => {
+            this.setState({ total });
+        }).catch((err: Error) => {
+            window.console.error(err.message);
+        });
+        fetch(
+            "/api/images",
+        ).then((res: Response) => {
+            return res.json();
+        }).then((recent: Iimage[]) => {
+            this.setState({ recent });
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
     }
     public render() {
-        const { recent, total } = this.state;
+        const { total, recent } = this.state;
         let totalTable: React.ReactNode;
         if (total) {
             const rows = Object.values(labels).map((e: labels, i: number) => {
                 return (
                   <tr key={i}>
                     <td>{labelStringMap[e]}</td>
-                    <td>{total[e]}</td>
+                    <td>
+                      <Link to={`/label/${e}`} className="btn btn-sm btn-link">
+                        {total[e]}
+                      </Link>
+                    </td>
                   </tr>
                 );
             });

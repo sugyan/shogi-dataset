@@ -54,7 +54,7 @@ class ImageEdit extends React.Component<ImageEditProps, ImageEditState> {
         });
         return (
             <div>
-              <img src={image_url}/>
+              <img src={image_url} className="img-thumbnail" />
               <hr />
               <form onSubmit={this.onSubmit.bind(this)}>
                 <div className="form-group">

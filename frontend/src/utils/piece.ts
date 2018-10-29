@@ -30,6 +30,8 @@ export enum labels {
     W_RY = "W_RY",
 }
 
+export type numbers = { [label in labels]: number };
+
 export const labelStringMap: { [label in labels]: string } = {
     BLANK: "空白",
     B_FU: "▲歩兵",

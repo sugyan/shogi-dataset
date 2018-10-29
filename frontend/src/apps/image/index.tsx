@@ -1,6 +1,7 @@
 import moment from "moment";
 import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
+import { Link } from "react-router-dom";
 
 import { labels, labelStringMap } from "../../utils/piece";
 
@@ -46,13 +47,17 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
         }
         return (
             <div>
-              <img src={image_url} />
+              <img src={image_url} className="img-thumbnail" />
               <hr />
               <dl>
                 <dt>Image URL</dt>
                 <dd><a href={image_url} target="_blank">{image_url}</a></dd>
                 <dt>Label</dt>
-                <dd>{labelStringMap[label as labels]} (<pre style={{ display: "inline" }}>{label}</pre>)</dd>
+                <dd>
+                  {labelStringMap[label as labels]} (
+                  <Link to={`/label/${label}`}><pre style={{ display: "inline" }}>{label}</pre></Link>
+                  )
+                </dd>
                 <dt>Created at</dt>
                 <dd>{createdAt.format(`${moment.HTML5_FMT.DATE} ${moment.HTML5_FMT.TIME_SECONDS}`)}</dd>
                 <dt>Updated at</dt>

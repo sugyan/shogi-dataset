@@ -2,8 +2,8 @@ import * as React from "react";
 import { BrowserRouter, Link, Route } from "react-router-dom";
 
 import Image from "./apps/image";
-import ImageEdit from "./apps/image-edit";
 import Index from "./apps/index";
+import Label from "./apps/label";
 import Upload from "./apps/upload";
 
 export default class App extends React.Component {
@@ -27,6 +27,7 @@ export default class App extends React.Component {
                   <div>
                     <Route exact path="/" component={Index} />
                     <Route path="/image" component={Image} />
+                    <Route path="/label/:label" component={Label} />
                     <Route exact path="/upload" component={Upload} />
                   </div>
                 </div>

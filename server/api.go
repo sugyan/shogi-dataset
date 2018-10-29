@@ -22,10 +22,16 @@ type image struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type filter struct {
+	filterStr string
+	value     interface{}
+}
+
 func init() {
 	apiHandler := http.NewServeMux()
 	apiHandler.HandleFunc("/index", apiIndexHandler)
 	apiHandler.HandleFunc("/image/", apiImageHandler)
+	apiHandler.HandleFunc("/images", apiImagesHandler)
 	apiHandler.HandleFunc("/upload", apiUploadHandler)
 	http.Handle("/api/", http.StripPrefix("/api", apiHandler))
 }
@@ -33,29 +39,13 @@ func init() {
 func apiIndexHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	result := struct {
-		Total  *common.Total `json:"total"`
-		Recent []*image      `json:"recent"`
-	}{}
-
-	// total numbers
 	total, err := common.GetTotal(ctx)
 	if err != nil {
 		log.Errorf(ctx, "failed to fetch total: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	result.Total = total
-	// recent updated images
-	recent, err := fetchRecentImages(ctx)
-	if err != nil {
-		log.Errorf(ctx, "failed to fetch images: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-	result.Recent = recent
-
-	if err := json.NewEncoder(w).Encode(result); err != nil {
+	if err := json.NewEncoder(w).Encode(total); err != nil {
 		log.Errorf(ctx, "failed to render json: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -96,6 +86,26 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		log.Errorf(ctx, "method %s is not supported", r.Method)
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func apiImagesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+	label := r.URL.Query().Get("label")
+	var f *filter
+	if label != "" {
+		f = &filter{"Label =", label}
+	}
+	results, err := fetchRecentImages(ctx, f)
+	if err != nil {
+		log.Errorf(ctx, "failed to fetch images: %v", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		log.Errorf(ctx, "failed to render json: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 }
@@ -145,9 +155,13 @@ func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func fetchRecentImages(ctx context.Context) ([]*image, error) {
+func fetchRecentImages(ctx context.Context, filter *filter) ([]*image, error) {
 	results := []*image{}
-	iter := datastore.NewQuery(common.KindImage).Order("-UpdatedAt").Limit(20).Run(ctx)
+	query := datastore.NewQuery(common.KindImage)
+	if filter != nil {
+		query = query.Filter(filter.filterStr, filter.value)
+	}
+	iter := query.Order("-UpdatedAt").Limit(20).Run(ctx)
 	for {
 		result := &common.Image{}
 		key, err := iter.Next(result)
@@ -165,5 +179,6 @@ func fetchRecentImages(ctx context.Context) ([]*image, error) {
 			UpdatedAt: result.UpdatedAt,
 		})
 	}
+	// TODO: use cursor
 	return results, nil
 }
