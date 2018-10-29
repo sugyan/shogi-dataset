@@ -10,12 +10,17 @@ interface Iimage {
     created_at: string;
 }
 
+interface IimagesResult {
+    images: Iimage[];
+    cursor: string;
+}
+
 interface IindexState {
     recent: Iimage[];
     total?: numbers;
 }
 
-export default class Index extends React.Component<any, IindexState> {
+export default class Index extends React.Component<{}, IindexState> {
     public constructor(props: any) {
         super(props);
         this.state = {
@@ -36,8 +41,8 @@ export default class Index extends React.Component<any, IindexState> {
             "/api/images",
         ).then((res: Response) => {
             return res.json();
-        }).then((recent: Iimage[]) => {
-            this.setState({ recent });
+        }).then((results: IimagesResult) => {
+            this.setState({ recent: results.images });
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
@@ -83,9 +88,11 @@ export default class Index extends React.Component<any, IindexState> {
         return (
             <div className="row">
               <div className="col-sm">
+                <h2>Total</h2>
                 {totalTable}
               </div>
               <div className="col-sm">
+                <h2>Recently updated</h2>
                 {images}
               </div>
             </div>

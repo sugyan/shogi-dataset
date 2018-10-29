@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
+
+const defaultLimit = 20
 
 type image struct {
 	ID        string    `json:"id,omitempty"`
@@ -25,6 +28,11 @@ type image struct {
 type filter struct {
 	filterStr string
 	value     interface{}
+}
+
+type imagesResult struct {
+	Images []*image `json:"images"`
+	Cursor string   `json:"cursor"`
 }
 
 func init() {
@@ -92,12 +100,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 
 func apiImagesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
-	label := r.URL.Query().Get("label")
-	var f *filter
-	if label != "" {
-		f = &filter{"Label =", label}
-	}
-	results, err := fetchRecentImages(ctx, f)
+	results, err := fetchRecentImages(ctx, r.URL.Query())
 	if err != nil {
 		log.Errorf(ctx, "failed to fetch images: %v", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -155,13 +158,23 @@ func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func fetchRecentImages(ctx context.Context, filter *filter) ([]*image, error) {
-	results := []*image{}
+func fetchRecentImages(ctx context.Context, params url.Values) (*imagesResult, error) {
 	query := datastore.NewQuery(common.KindImage)
-	if filter != nil {
-		query = query.Filter(filter.filterStr, filter.value)
+	label := params.Get("label")
+	if label != "" {
+		query = query.Filter("Label =", label)
 	}
-	iter := query.Order("-UpdatedAt").Limit(20).Run(ctx)
+	cursor := params.Get("cursor")
+	if cursor != "" {
+		c, err := datastore.DecodeCursor(cursor)
+		if err != nil {
+			return nil, err
+		}
+		query = query.Start(c)
+	}
+
+	images := []*image{}
+	iter := query.Order("-UpdatedAt").Limit(defaultLimit).Run(ctx)
 	for {
 		result := &common.Image{}
 		key, err := iter.Next(result)
@@ -171,7 +184,7 @@ func fetchRecentImages(ctx context.Context, filter *filter) ([]*image, error) {
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, &image{
+		images = append(images, &image{
 			ID:        key.Encode(),
 			ImageURL:  result.ImageURL,
 			Label:     result.Label,
@@ -179,6 +192,16 @@ func fetchRecentImages(ctx context.Context, filter *filter) ([]*image, error) {
 			UpdatedAt: result.UpdatedAt,
 		})
 	}
-	// TODO: use cursor
+	c, err := iter.Cursor()
+	if err != nil {
+		return nil, err
+	}
+	results := &imagesResult{
+		Images: images,
+		Cursor: c.String(),
+	}
+	if len(images) < defaultLimit {
+		results.Cursor = ""
+	}
 	return results, nil
 }
