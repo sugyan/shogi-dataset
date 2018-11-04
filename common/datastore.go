@@ -293,7 +293,7 @@ func addTask(ctx context.Context, label string, amount int) error {
 	params := url.Values{}
 	params.Add("label", label)
 	params.Add("amount", strconv.Itoa(amount))
-	task, err := taskqueue.Add(ctx, taskqueue.NewPOSTTask("/task", params), "default")
+	task, err := taskqueue.Add(ctx, taskqueue.NewPOSTTask("/admin/task", params), "default")
 	if err != nil {
 		return err
 	}
