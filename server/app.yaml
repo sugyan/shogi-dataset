@@ -7,6 +7,9 @@ handlers:
 - url: /_ah/remote_api
   script: _go_app
   secure: always
+- url: /task
+  script: _go_app
+  login: admin
 - url: /.*
   script: _go_app
   secure: always

@@ -6,7 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/taskqueue"
 	"google.golang.org/appengine/user"
 )
 
@@ -66,16 +69,10 @@ type Total struct {
 	WOU   int `json:"W_OU"`
 }
 
-type totalDiff bool
-
-const (
-	totalIncrement totalDiff = true
-	totalDecrement totalDiff = false
-)
-
-type totalUpdate struct {
-	label string
-	diff  totalDiff
+// TotalUpdate type
+type TotalUpdate struct {
+	Label  string
+	Amount int
 }
 
 // RegisterImage function
@@ -114,8 +111,8 @@ func RegisterImage(ctx context.Context, imageData []byte, label string) (*datast
 	}
 	log.Infof(ctx, "stored entity: %s", key.Encode())
 
-	if err := updateTotal(ctx, &totalUpdate{label, totalIncrement}); err != nil {
-		log.Errorf(ctx, "failed to update total: %s", err.Error())
+	if err := addTask(ctx, label, 1); err != nil {
+		log.Errorf(ctx, "failed to add task: %s", err.Error())
 		return nil, err
 	}
 	return key, nil
@@ -136,7 +133,7 @@ func DeleteImage(ctx context.Context, key *datastore.Key) error {
 		log.Errorf(ctx, "failed to delete entity: %s", err.Error())
 		return err
 	}
-	if err := updateTotal(ctx, &totalUpdate{image.Label, totalDecrement}); err != nil {
+	if err := UpdateTotal(ctx, &TotalUpdate{image.Label, -1}); err != nil {
 		log.Errorf(ctx, "failed to update total: %s", err.Error())
 		return err
 	}
@@ -162,11 +159,11 @@ func EditImage(ctx context.Context, key *datastore.Key, nextLabel string) error 
 		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
 		return err
 	}
-	diffs := []*totalUpdate{
-		{prevLabel, totalDecrement},
-		{nextLabel, totalIncrement},
+	updates := []*TotalUpdate{
+		{prevLabel, -1},
+		{nextLabel, +1},
 	}
-	if err := updateTotal(ctx, diffs...); err != nil {
+	if err := UpdateTotal(ctx, updates...); err != nil {
 		log.Errorf(ctx, "failed to update total: %s", err.Error())
 		return err
 	}
@@ -239,23 +236,18 @@ func GetTotal(ctx context.Context) (*Total, error) {
 	return total, nil
 }
 
-func updateTotal(ctx context.Context, updates ...*totalUpdate) error {
+// UpdateTotal function
+func UpdateTotal(ctx context.Context, updates ...*TotalUpdate) error {
 	if err := datastore.RunInTransaction(ctx, func(ctx context.Context) error {
 		total, err := GetTotal(ctx)
 		if err != nil {
 			return err
 		}
 		for _, update := range updates {
-			fieldName := strings.Replace(update.label, "_", "", -1)
+			fieldName := strings.Replace(update.Label, "_", "", -1)
 			fieldValue := reflect.Indirect(reflect.ValueOf(total)).FieldByName(fieldName)
 			if num, ok := fieldValue.Interface().(int); ok {
-				switch update.diff {
-				case totalIncrement:
-					num++
-				case totalDecrement:
-					num--
-				}
-				fieldValue.Set(reflect.ValueOf(num))
+				fieldValue.Set(reflect.ValueOf(num + update.Amount))
 			}
 		}
 		if _, err := datastore.Put(ctx, totalKey(ctx), total); err != nil {
@@ -290,5 +282,17 @@ func CountTotal(ctx context.Context) error {
 		log.Errorf(ctx, "failed to put entity: %s", err.Error())
 		return err
 	}
+	return nil
+}
+
+func addTask(ctx context.Context, label string, amount int) error {
+	params := url.Values{}
+	params.Add("label", label)
+	params.Add("amount", strconv.Itoa(amount))
+	task, err := taskqueue.Add(ctx, taskqueue.NewPOSTTask("/task", params), "default")
+	if err != nil {
+		return err
+	}
+	log.Infof(ctx, "task %s added", task.Name)
 	return nil
 }
