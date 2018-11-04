@@ -81,10 +81,12 @@ func RegisterImage(ctx context.Context, imageData []byte, label string) (*datast
 	hash.Write(imageData)
 	digest := hex.EncodeToString(hash.Sum(nil))
 
+	created := false
 	key := datastore.NewKey(ctx, KindImage, digest, 0, nil)
 	image := &Image{}
 	if err := datastore.Get(ctx, key, image); err != nil {
 		if err == datastore.ErrNoSuchEntity {
+			created = true
 			image.CreatedAt = time.Now()
 		} else {
 			log.Errorf(ctx, "failed to get image entity")
@@ -111,9 +113,11 @@ func RegisterImage(ctx context.Context, imageData []byte, label string) (*datast
 	}
 	log.Infof(ctx, "stored entity: %s", key.Encode())
 
-	if err := addTask(ctx, label, 1); err != nil {
-		log.Errorf(ctx, "failed to add task: %s", err.Error())
-		return nil, err
+	if created {
+		if err := addTask(ctx, label, 1); err != nil {
+			log.Errorf(ctx, "failed to add task: %s", err.Error())
+			return nil, err
+		}
 	}
 	return key, nil
 }
