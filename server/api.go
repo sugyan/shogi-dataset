@@ -47,7 +47,7 @@ func init() {
 func apiIndexHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
-	total, err := common.GetTotal(ctx)
+	total, err := getTotal(ctx)
 	if err != nil {
 		log.Errorf(ctx, "failed to fetch total: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -77,7 +77,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "DELETE":
-		if err := common.DeleteImage(ctx, key); err != nil {
+		if err := deleteImage(ctx, key); err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -87,7 +87,7 @@ func apiImageHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		if err := common.EditImage(ctx, key, r.Form.Get("label")); err != nil {
+		if err := editImage(ctx, key, r.Form.Get("label")); err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/sugyan/shogi-dataset/common"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )
@@ -23,7 +22,7 @@ func countHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := appengine.NewContext(r)
-	if err := common.CountTotal(ctx); err != nil {
+	if err := countTotal(ctx); err != nil {
 		log.Errorf(ctx, "failed to count total: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
@@ -52,11 +51,11 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	update := &common.TotalUpdate{
-		Label:  label,
-		Amount: amount,
+	update := &totalUpdate{
+		label:  label,
+		amount: amount,
 	}
-	if err := common.UpdateTotal(ctx, update); err != nil {
+	if err := updateTotal(ctx, update); err != nil {
 		log.Errorf(ctx, "failed to update total count: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
