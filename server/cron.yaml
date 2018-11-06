@@ -1,4 +1,4 @@
 cron:
 - description: "daily count update"
-  url: /count
+  url: /admin/count
   schedule: every 24 hours
