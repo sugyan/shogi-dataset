@@ -1,4 +1,4 @@
-import moment from "moment";
+import { DateTime } from "luxon";
 import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Link } from "react-router-dom";
@@ -70,7 +70,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         }
         const labelName: string = labelStringMap[match.params.label as labels];
         const imageList = images.map((v: Iimage, i: number) => {
-            const format: string = `${moment.HTML5_FMT.DATE} ${moment.HTML5_FMT.TIME_SECONDS}`;
+            const format: string = "yyyy-LL-dd TT";
             return (
                 <tr key={v.id}>
                   <td>
@@ -78,8 +78,8 @@ class Label extends React.Component<IlabelProps, IlabelState> {
                       <img src={v.image_url} className="img-thumbnail" />
                     </Link>
                   </td>
-                  <td className="align-middle">{moment(v.created_at).format(format)}</td>
-                  <td className="align-middle">{moment(v.updated_at).format(format)}</td>
+                  <td className="align-middle">{DateTime.fromISO(v.created_at).toFormat(format)}</td>
+                  <td className="align-middle">{DateTime.fromISO(v.updated_at).toFormat(format)}</td>
                 </tr>
             );
         });

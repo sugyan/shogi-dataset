@@ -1,4 +1,4 @@
-import moment from "moment";
+import { DateTime } from "luxon";
 import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Link } from "react-router-dom";
@@ -40,8 +40,7 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
     }
     public render() {
         const { image_url, label, created_at, updated_at } = this.state;
-        const createdAt: moment.Moment = moment(created_at);
-        const updatedAt: moment.Moment = moment(updated_at);
+        const format: string = "yyyy-LL-dd TT";
         if (!image_url) {
             return null;
         }
@@ -59,9 +58,9 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
                   )
                 </dd>
                 <dt>Created at</dt>
-                <dd>{createdAt.format(`${moment.HTML5_FMT.DATE} ${moment.HTML5_FMT.TIME_SECONDS}`)}</dd>
+                <dd>{DateTime.fromISO(created_at).toFormat(format)}</dd>
                 <dt>Updated at</dt>
-                <dd>{updatedAt.format(`${moment.HTML5_FMT.DATE} ${moment.HTML5_FMT.TIME_SECONDS}`)}</dd>
+                <dd>{DateTime.fromISO(updated_at).toFormat(format)}</dd>
               </dl>
               <hr />
               <button
