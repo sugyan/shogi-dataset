@@ -12,10 +12,8 @@ interface Irequest {
 }
 
 const ctx: Worker = self as any;
-
-// TODO
-const MODEL_URL = "http://localhost:8080/static/data/tensorflowjs_model.pb";
-const WEIGHTS_URL = "http://localhost:8080/static/data/weights_manifest.json";
+const MODEL_URL = `${process.env.MODEL_URL_BASE}/tensorflowjs_model.pb`;
+const WEIGHTS_URL = `${process.env.MODEL_URL_BASE}/weights_manifest.json`;
 
 const inputQueue: Irequest[] = [];
 

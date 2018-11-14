@@ -20,4 +20,8 @@ $ npm start
 
 ## Deployment
 
-<!-- TODO -->
+```
+$ export MODEL_URL_BASE=<MODEL URL> # CORS must be supported
+$ npm run build
+$ gcloud app deploy server
+```
