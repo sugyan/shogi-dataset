@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sugyan/shogi-dataset/common"
+	"github.com/sugyan/shogi-dataset"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -114,7 +114,7 @@ func apiImagesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getImage(ctx context.Context, key *datastore.Key, w http.ResponseWriter) error {
-	result := &common.Image{}
+	result := &dataset.Image{}
 	if err := datastore.Get(ctx, key, result); err != nil {
 		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
 		return err
@@ -148,7 +148,7 @@ func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(ctx, "failed to decode request image: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
-	key, err := common.RegisterImage(ctx, data, req.Label)
+	key, err := dataset.RegisterImage(ctx, data, req.Label)
 	if err != nil {
 		log.Errorf(ctx, "failed to store data: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -159,7 +159,7 @@ func apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchRecentImages(ctx context.Context, params url.Values) (*imagesResult, error) {
-	query := datastore.NewQuery(common.KindImage)
+	query := datastore.NewQuery(dataset.KindImage)
 	label := params.Get("label")
 	if label != "" {
 		query = query.Filter("Label =", label)
@@ -176,7 +176,7 @@ func fetchRecentImages(ctx context.Context, params url.Values) (*imagesResult, e
 	images := []*image{}
 	iter := query.Order("-UpdatedAt").Limit(defaultLimit).Run(ctx)
 	for {
-		result := &common.Image{}
+		result := &dataset.Image{}
 		key, err := iter.Next(result)
 		if err == datastore.Done {
 			break

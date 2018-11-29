@@ -7,7 +7,7 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/sugyan/shogi-dataset/common"
+	"github.com/sugyan/shogi-dataset"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/appengine/remote_api"
 )
@@ -68,7 +68,7 @@ func upload(files []string, label string) error {
 		if err != nil {
 			return err
 		}
-		key, err := common.RegisterImage(ctx, data, label)
+		key, err := dataset.RegisterImage(ctx, data, label)
 		if err != nil {
 			return err
 		}

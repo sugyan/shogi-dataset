@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sugyan/shogi-dataset/common"
+	"github.com/sugyan/shogi-dataset"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
@@ -17,11 +17,11 @@ type totalUpdate struct {
 }
 
 func deleteImage(ctx context.Context, key *datastore.Key) error {
-	if err := common.DeleteObject(ctx, key.StringID()); err != nil {
+	if err := dataset.DeleteObject(ctx, key.StringID()); err != nil {
 		log.Errorf(ctx, "failed to delete object: %s", err.Error())
 		return err
 	}
-	image := &common.Image{}
+	image := &dataset.Image{}
 	if err := datastore.Get(ctx, key, image); err != nil {
 		log.Errorf(ctx, "failed to et entity: %s", err.Error())
 		return err
@@ -39,7 +39,7 @@ func deleteImage(ctx context.Context, key *datastore.Key) error {
 
 func editImage(ctx context.Context, key *datastore.Key, nextLabel string) error {
 	var prevLabel string
-	image := &common.Image{}
+	image := &dataset.Image{}
 	if err := datastore.Get(ctx, key, image); err != nil {
 		log.Errorf(ctx, "failed to get image entity: %s", err.Error())
 		return err
@@ -67,11 +67,11 @@ func editImage(ctx context.Context, key *datastore.Key, nextLabel string) error 
 }
 
 func totalKey(ctx context.Context) *datastore.Key {
-	return datastore.NewKey(ctx, common.KindTotal, "", 1, nil)
+	return datastore.NewKey(ctx, dataset.KindTotal, "", 1, nil)
 }
 
-func getTotal(ctx context.Context) (*common.Total, error) {
-	total := &common.Total{}
+func getTotal(ctx context.Context) (*dataset.Total, error) {
+	total := &dataset.Total{}
 	if err := datastore.Get(ctx, totalKey(ctx), total); err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			if _, err := datastore.Put(ctx, totalKey(ctx), total); err != nil {
@@ -111,14 +111,14 @@ func updateTotal(ctx context.Context, updates ...*totalUpdate) error {
 }
 
 func countTotal(ctx context.Context) error {
-	total := &common.Total{}
+	total := &dataset.Total{}
 	targetLabels := []string{
 		"BLANK",
 		"B_FU", "B_TO", "B_KY", "B_NY", "B_KE", "B_NK", "B_GI", "B_NG", "B_KI", "B_KA", "B_UM", "B_HI", "B_RY", "B_OU",
 		"W_FU", "W_TO", "W_KY", "W_NY", "W_KE", "W_NK", "W_GI", "W_NG", "W_KI", "W_KA", "W_UM", "W_HI", "W_RY", "W_OU",
 	}
 	for _, label := range targetLabels {
-		num, err := datastore.NewQuery(common.KindImage).Filter("Label =", label).Count(ctx)
+		num, err := datastore.NewQuery(dataset.KindImage).Filter("Label =", label).Count(ctx)
 		if err != nil {
 			log.Errorf(ctx, "failed to count label %s: %s", label, err.Error())
 			return err
