@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/binary"
 	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"cloud.google.com/go/datastore"
@@ -58,6 +62,7 @@ var (
 )
 
 type result struct {
+	uid  uint64
 	data []byte
 	err  error
 }
@@ -74,25 +79,62 @@ func init() {
 func main() {
 	flag.Parse()
 
+	// write labels data
+	if err := writeLabels(); err != nil {
+		log.Fatal(err)
+	}
+
+	// get images
 	imagesCh, err := getImages()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// download and encode data
 	resultCh := make(chan *result)
 	wg := sync.WaitGroup{}
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			worker(imagesCh, resultCh)
 		}()
 	}
-
 	go func() {
 		wg.Wait()
 		close(resultCh)
 	}()
+
+	// write to files
+	if err := write(resultCh); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func writeLabels() error {
+	file, err := os.Create(filepath.Join("data", "labels.txt"))
+	if err != nil {
+		return err
+	}
+	for _, label := range labels {
+		if _, err := file.WriteString(label + "\n"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func write(resultCh <-chan *result) error {
+	t, err := os.Create(filepath.Join("data", "train.tfrecord"))
+	if err != nil {
+		return err
+	}
+	defer t.Close()
+	v, err := os.Create(filepath.Join("data", "valid.tfrecord"))
+	if err != nil {
+		return err
+	}
+	defer v.Close()
 loop:
 	for {
 		select {
@@ -101,12 +143,22 @@ loop:
 				break loop
 			}
 			if result.err != nil {
-				log.Fatal(result.err)
+				return err
 			}
-			// TODO
-			log.Printf("%v", len(result.data))
+			if result.uid%100 < 90 {
+				log.Printf("write to train.tfrecord (%v bytes)", len(result.data))
+				if _, err := t.Write(result.data); err != nil {
+					return err
+				}
+			} else {
+				log.Printf("write to valid.tfrecord (%v bytes)", len(result.data))
+				if _, err := v.Write(result.data); err != nil {
+					return err
+				}
+			}
 		}
 	}
+	return nil
 }
 
 func getImages() (<-chan *dataset.Image, error) {
@@ -131,8 +183,6 @@ func getImages() (<-chan *dataset.Image, error) {
 	go func() {
 		defer close(ch)
 		query := datastore.NewQuery(dataset.KindImage)
-		// TODO
-		query = query.Limit(30)
 		iter := dsClient.Run(ctx, query)
 		for {
 			var image dataset.Image
@@ -156,12 +206,16 @@ func worker(imagesCh <-chan *dataset.Image, resultCh chan<- *result) {
 			resultCh <- &result{err: err}
 			break
 		} else {
-			resultCh <- &result{data: data}
+			hash := md5.New()
+			hash.Write([]byte(image.ImageURL))
+			uid := binary.BigEndian.Uint64(hash.Sum(nil))
+			resultCh <- &result{uid: uid, data: data}
 		}
 	}
 }
 
 func encode(image *dataset.Image) ([]byte, error) {
+	log.Printf("download %s", image.ImageURL)
 	resp, err := http.Get(image.ImageURL)
 	if err != nil {
 		return nil, err
