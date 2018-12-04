@@ -120,7 +120,7 @@ class Canvas extends React.Component<Props> {
                 ])
                 .reduce((prev, curr) => prev.concat(curr), []));
     }
-    private onChangeFile(ev: Event) {
+    private onChangeFile(ev: React.ChangeEvent) {
         const files: FileList = (ev.target as HTMLInputElement).files!;
         if (files.length < 1) {
             return;

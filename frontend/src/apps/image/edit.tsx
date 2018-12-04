@@ -75,13 +75,13 @@ class ImageEdit extends React.Component<ImageEditProps, ImageEditState> {
             </div>
         );
     }
-    private onChangeSelect(ev: Event) {
+    private onChangeSelect(ev: React.ChangeEvent) {
         const select: HTMLSelectElement = ev.target as HTMLSelectElement;
         this.setState({
             label: select.value,
         });
     }
-    private onSubmit(ev: Event) {
+    private onSubmit(ev: React.FormEvent) {
         ev.preventDefault();
 
         const { match, history } = this.props;

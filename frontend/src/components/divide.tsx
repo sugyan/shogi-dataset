@@ -165,7 +165,7 @@ class Divide extends React.Component<Props, IdivideState> {
             </div>
         );
     }
-    private onChangeNumber(ev: Event) {
+    private onChangeNumber(ev: React.ChangeEvent) {
         const { changeDivide, divide } = this.props;
         const nextDivide: IdivideNums = { ...divide };
         const target: HTMLInputElement = ev.target as HTMLInputElement;
@@ -179,7 +179,7 @@ class Divide extends React.Component<Props, IdivideState> {
         }
         changeDivide(nextDivide);
     }
-    private onSubmitDivide(ev: Event) {
+    private onSubmitDivide(ev: React.FormEvent) {
         ev.preventDefault();
 
         const { imageData, divide, size } = this.props;
@@ -216,13 +216,13 @@ class Divide extends React.Component<Props, IdivideState> {
             });
         });
     }
-    private onChangeSelect(ev: Event) {
+    private onChangeSelect(ev: React.ChangeEvent) {
         const select: HTMLSelectElement = ev.target as HTMLSelectElement;
         this.setState({
             selectedLabel: select.value,
         });
     }
-    private onSubmitUpload(ev: Event) {
+    private onSubmitUpload(ev: React.FormEvent) {
         ev.preventDefault();
 
         const { images, selectedLabel, targetImage } = this.state;
