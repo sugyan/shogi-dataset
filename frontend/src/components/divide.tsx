@@ -70,8 +70,8 @@ class Divide extends React.Component<Props, IdivideState> {
         const results: React.ReactNode[] = images.map((v: IdividedImage, i) => {
             let predicted: React.ReactNode;
             if (v.predicted) {
-                const lines: string[] = v.predicted.map((p: IpredictResult, j: number) => {
-                    return `${p.label}: ${Math.round(p.score * 10000) / 10000}`;
+                const lines: string[] = v.predicted.map((p: IpredictResult) => {
+                    return `${labelStringMap[p.label as labels]}: ${Math.round(p.score * 10000) / 10000}`;
                 });
                 predicted = <pre>{lines.join("\n")}</pre>;
             }
