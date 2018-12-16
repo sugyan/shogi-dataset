@@ -56,6 +56,7 @@ class Perspective extends React.Component<Props> {
     }
     public render(): React.ReactNode {
         const { size, divide, imageData } = this.props;
+        let rotateButton: React.ReactNode;
         if (imageData) {
             const ctx: CanvasRenderingContext2D = this.container.current!.getContext("2d")!;
             ctx.putImageData(imageData!, 0, 0);
@@ -72,11 +73,21 @@ class Perspective extends React.Component<Props> {
                 ctx.lineTo(size / divide.col * i, size);
                 ctx.stroke();
             }
+            rotateButton = (
+                <div className="text-right">
+                  <button className="btn btn-light" onClick={this.onClickRotateButton.bind(this)}>
+                    <svg viewBox="0 0 8 8" style={{ height: 16, width: 16 }}>
+                      <use xlinkHref="/static/svg/open-iconic.min.svg#loop-circular" style={{ fill: "gray" }} />
+                    </svg>
+                  </button>
+                </div>
+            );
         }
         return (
             <div>
               <h2>Cropped</h2>
               <canvas ref={this.container} style={{ width: "100%", border: "1px solid" }} />
+              {rotateButton}
             </div>
         );
     }
@@ -90,6 +101,31 @@ class Perspective extends React.Component<Props> {
         const data: Uint8Array = this.canvas!.getPixelArray();
         const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
         updateImageData(imageData);
+    }
+    private onClickRotateButton() {
+        const { imageData, updateImageData } = this.props;
+        if (!imageData) {
+            return;
+        }
+        const imgCanvas: HTMLCanvasElement = document.createElement("canvas");
+        imgCanvas.height = imageData.height;
+        imgCanvas.width  = imageData.width;
+        imgCanvas.getContext("2d")!.putImageData(imageData, 0, 0);
+        const img: HTMLImageElement = new Image();
+        img.onload = () => {
+            const drawCanvas: HTMLCanvasElement = document.createElement("canvas");
+            const ctx: CanvasRenderingContext2D = drawCanvas.getContext("2d")!;
+            drawCanvas.height = imageData.height;
+            drawCanvas.width  = imageData.width;
+            ctx.save();
+            ctx.translate(+ 0.5 * imageData.height, + 0.5 * imageData.height);
+            ctx.rotate(- Math.PI * 0.5);
+            ctx.translate(- 0.5 * imageData.height, - 0.5 * imageData.height);
+            ctx.drawImage(img, 0, 0);
+            ctx.restore();
+            updateImageData(ctx.getImageData(0, 0, imageData.width, imageData.height));
+        };
+        img.src = imgCanvas.toDataURL("image/png");
     }
 }
 

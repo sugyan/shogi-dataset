@@ -6,7 +6,7 @@ export enum UploaderActionName {
     CHANGE_DIVIDE     = "CHANGE_DIVIDE",
     CLEAR_STATE       = "CLEAR_STATE",
     LOAD_IMAGE        = "LOAD_IMAGE",
-    UPDATE_IMAGE_DATA = "UPDATE_IMAGEDATA",
+    UPDATE_IMAGE_DATA = "UPDATE_IMAGE_DATA",
     UPDATE_POINTS     = "UPDATE_POINTS",
 }
 
