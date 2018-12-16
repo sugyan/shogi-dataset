@@ -6,6 +6,7 @@ import { Dispatch } from "redux";
 import { changeDivideAction, UploaderAction } from "../redux/actions/uploader";
 import { Istate } from "../redux/reducer";
 import { IdivideNums } from "../redux/reducers/uploader";
+import { predictResultString } from "../utils/common";
 import { labels, labelStringMap } from "../utils/piece";
 import WorkerProxy, { IpredictResult } from "../utils/worker-proxy";
 
@@ -70,10 +71,7 @@ class Divide extends React.Component<Props, IdivideState> {
         const results: React.ReactNode[] = images.map((v: IdividedImage, i) => {
             let predicted: React.ReactNode;
             if (v.predicted) {
-                const lines: string[] = v.predicted.map((p: IpredictResult) => {
-                    return `${labelStringMap[p.label as labels]}: ${Math.round(p.score * 10000) / 10000}`;
-                });
-                predicted = <pre>{lines.join("\n")}</pre>;
+                predicted = <pre>{predictResultString(v.predicted)}</pre>;
             }
             return (
                 <tr

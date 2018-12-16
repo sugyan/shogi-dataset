@@ -3,14 +3,16 @@ import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Link } from "react-router-dom";
 
-import { Iparameter, queryString } from "../utils/common";
+import { Iparameter, predictResultString, queryString } from "../utils/common";
 import { labels, labelStringMap, numbers } from "../utils/piece";
+import WorkerProxy, { IpredictResult } from "../utils/worker-proxy";
 
 interface Iimage {
     id: string;
     image_url: string;
     created_at: string;
     updated_at: string;
+    predict_result?: IpredictResult[];
 }
 
 interface IimagesResult {
@@ -37,6 +39,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
     public componentDidMount() {
         const { match } = this.props;
         const params: Iparameter = { label: match.params.label };
+        // fetch images
         fetch(
             `/api/images?${queryString(params)}`,
         ).then((res: Response) => {
@@ -49,6 +52,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
+        // fetch index to get total numbers
         fetch(
             "/api/index",
         ).then((res: Response) => {
@@ -69,8 +73,18 @@ class Label extends React.Component<IlabelProps, IlabelState> {
             );
         }
         const labelName: string = labelStringMap[match.params.label as labels];
-        const imageList = images.map((v: Iimage, i: number) => {
+        const imageList = images.map((v: Iimage) => {
             const format: string = "yyyy-LL-dd TT";
+            let predict: React.ReactNode;
+            if (v.predict_result) {
+                predict = <pre>{predictResultString(v.predict_result)}</pre>;
+            } else {
+                predict = (
+                    <button className="btn text-muted" onClick={this.onClickPredict.bind(this, v)}>
+                      predict
+                    </button>
+                );
+            }
             return (
                 <tr key={v.id}>
                   <td>
@@ -78,6 +92,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
                       <img src={v.image_url} className="img-thumbnail" />
                     </Link>
                   </td>
+                  <td className="align-middle">{predict}</td>
                   <td className="align-middle">{DateTime.fromISO(v.created_at).toFormat(format)}</td>
                   <td className="align-middle">{DateTime.fromISO(v.updated_at).toFormat(format)}</td>
                 </tr>
@@ -98,6 +113,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
               <table className="table table-sm table-hover">
                 <thead>
                   <tr>
+                    <th></th>
                     <th></th>
                     <th>Created</th>
                     <th>Updated</th>
@@ -129,6 +145,28 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
+    }
+    private onClickPredict(image: Iimage) {
+        const { images } = this.state;
+        const canvas: HTMLCanvasElement = document.createElement("canvas");
+        const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
+        const img: HTMLImageElement = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            canvas.height = img.height;
+            canvas.width  = img.width;
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, img.width, img.height);
+            WorkerProxy.predict([imageData]).then((results: IpredictResult[][]) => {
+                images.forEach((e: Iimage) => {
+                    if (e.id === image.id) {
+                        e.predict_result = results[0];
+                    }
+                });
+                this.setState({ images });
+            });
+        };
+        img.src = image.image_url;
     }
 }
 export default withRouter(Label);
