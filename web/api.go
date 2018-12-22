@@ -15,7 +15,7 @@ import (
 	"google.golang.org/appengine/log"
 )
 
-const defaultLimit = 20
+const defaultLimit = 30
 
 type image struct {
 	ID        string    `json:"id,omitempty"`
