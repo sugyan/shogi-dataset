@@ -4,27 +4,59 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 
+	"github.com/gorilla/sessions"
 	"github.com/sugyan/shogi-dataset/web/entity"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
 )
 
 // App struct
 type App struct {
-	isDev  bool
-	entity *entity.Client
+	isDev   bool
+	entity  *entity.Client
+	oauth2  *oauth2.Config
+	session sessions.Store
+}
+
+// Config struct
+type Config struct {
+	IsDev              bool
+	ProjectID          string
+	BucketName         string
+	Oauth2ClientID     string
+	Oauth2ClientSecret string
+	Oauth2RedirectURL  string
+	CookieKey          string
 }
 
 // NewApp function
-func NewApp(projectID, bucketName string, isDev bool) (*App, error) {
+func NewApp(config *Config) (*App, error) {
 	// configure entity client
-	entityClient, err := entity.NewClient(projectID, bucketName)
+	entityClient, err := entity.NewClient(config.ProjectID, config.BucketName)
 	if err != nil {
 		return nil, err
 	}
-
+	// configure oauth2 config
+	oauth2Config := &oauth2.Config{
+		ClientID:     config.Oauth2ClientID,
+		ClientSecret: config.Oauth2ClientSecret,
+		Endpoint:     github.Endpoint,
+		RedirectURL:  config.Oauth2RedirectURL,
+		Scopes:       []string{},
+	}
+	// configure session store
+	cookieStore := sessions.NewCookieStore([]byte(config.CookieKey))
+	cookieStore.Options.HttpOnly = true
+	if !config.IsDev {
+		cookieStore.Options.Secure = true
+	}
 	return &App{
-		isDev:  isDev,
-		entity: entityClient,
+		isDev:   config.IsDev,
+		entity:  entityClient,
+		oauth2:  oauth2Config,
+		session: cookieStore,
 	}, nil
 }
 
@@ -32,6 +64,13 @@ func NewApp(projectID, bucketName string, isDev bool) (*App, error) {
 func (app *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", app.appHandler)
+	mux.HandleFunc("/login", app.loginHandler)
+	mux.HandleFunc("/logout", app.logoutHandler)
+
+	authHandler := http.NewServeMux()
+	authHandler.HandleFunc("/github", app.oauth2GithubHandler)
+	authHandler.HandleFunc("/callback", app.oauth2CallbackHandler)
+	mux.Handle("/oauth2/", http.StripPrefix("/oauth2", authHandler))
 
 	apiHandler := http.NewServeMux()
 	apiHandler.HandleFunc("/index", app.apiIndexHandler)
@@ -48,14 +87,14 @@ func (app *App) Handler() http.Handler {
 }
 
 func (app *App) appHandler(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w); err != nil {
+	if err := app.renderTemplate(w, "index.html"); err != nil {
 		log.Printf("failed to render template: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }
 
-func (app *App) renderTemplate(w http.ResponseWriter) error {
-	t, err := template.ParseFiles("templates/index.html")
+func (app *App) renderTemplate(w http.ResponseWriter, filename string) error {
+	t, err := template.ParseFiles(filepath.Join("templates", filename))
 	if err != nil {
 		return err
 	}
