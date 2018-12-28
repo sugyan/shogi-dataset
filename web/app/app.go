@@ -32,8 +32,6 @@ func NewApp(projectID, bucketName string, isDev bool) (*App, error) {
 func (app *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", app.appHandler)
-	// mux.HandleFunc("/count", countHandler)
-	// mux.HandleFunc("/task", taskHandler)
 
 	apiHandler := http.NewServeMux()
 	apiHandler.HandleFunc("/index", app.apiIndexHandler)
@@ -42,10 +40,9 @@ func (app *App) Handler() http.Handler {
 	apiHandler.HandleFunc("/upload", app.apiUploadHandler)
 	mux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 
-	// adminHandler := http.NewServeMux()
-	// adminHandler.HandleFunc("/count", countHandler)
-	// adminHandler.HandleFunc("/task", taskHandler)
-	// mux.Handle("/admin/", http.StripPrefix("/admin", adminHandler))
+	adminHandler := http.NewServeMux()
+	adminHandler.HandleFunc("/count", app.countHandler)
+	mux.Handle("/admin/", http.StripPrefix("/admin", adminHandler))
 
 	return mux
 }

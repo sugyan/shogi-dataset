@@ -7,7 +7,7 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-// constant values
+// Constant values
 const (
 	KindImage = "Image"
 	KindTotal = "Total"

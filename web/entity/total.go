@@ -62,15 +62,37 @@ func (c *Client) GetTotal(ctx context.Context) (*Total, error) {
 	if err := c.dsClient.Get(ctx, totalKey, total); err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			if _, err := c.dsClient.Put(ctx, totalKey, total); err != nil {
-				log.Printf("failed to put entity: %s", err.Error())
 				return nil, err
 			}
 		} else {
-			log.Printf("failed to get entity: %s", err.Error())
 			return nil, err
 		}
 	}
 	return total, nil
+}
+
+// CountTotal method
+func (c *Client) CountTotal(ctx context.Context) error {
+	total := &Total{}
+	targetLabels := []string{
+		"BLANK",
+		"B_FU", "B_TO", "B_KY", "B_NY", "B_KE", "B_NK", "B_GI", "B_NG", "B_KI", "B_KA", "B_UM", "B_HI", "B_RY", "B_OU",
+		"W_FU", "W_TO", "W_KY", "W_NY", "W_KE", "W_NK", "W_GI", "W_NG", "W_KI", "W_KA", "W_UM", "W_HI", "W_RY", "W_OU",
+	}
+	for _, label := range targetLabels {
+		query := datastore.NewQuery(KindImage).Filter("Label =", label)
+		num, err := c.dsClient.Count(ctx, query)
+		if err != nil {
+			log.Printf("failed to count label %s: %s", label, err.Error())
+			return err
+		}
+		fieldName := strings.Replace(label, "_", "", -1)
+		reflect.Indirect(reflect.ValueOf(total)).FieldByName(fieldName).Set(reflect.ValueOf(num))
+	}
+	if _, err := c.dsClient.Put(ctx, totalKey, total); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) updateTotal(ctx context.Context, updates ...*totalUpdate) error {
