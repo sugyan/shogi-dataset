@@ -3,6 +3,8 @@ package entity
 import (
 	"context"
 	"log"
+	"reflect"
+	"strings"
 
 	"cloud.google.com/go/datastore"
 )
@@ -40,6 +42,18 @@ type Total struct {
 	WOU   int `json:"W_OU"`
 }
 
+type totalDiff bool
+
+const (
+	totalIncr totalDiff = true
+	totalDecr totalDiff = false
+)
+
+type totalUpdate struct {
+	label string
+	diff  totalDiff
+}
+
 var totalKey = datastore.IDKey(KindTotal, 1, nil)
 
 // GetTotal method
@@ -57,4 +71,39 @@ func (c *Client) GetTotal(ctx context.Context) (*Total, error) {
 		}
 	}
 	return total, nil
+}
+
+func (c *Client) updateTotal(ctx context.Context, updates ...*totalUpdate) error {
+	tx, err := c.dsClient.NewTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	if _, err := c.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		total, err := c.GetTotal(ctx)
+		if err != nil {
+			return err
+		}
+		for _, update := range updates {
+			fieldName := strings.Replace(update.label, "_", "", -1)
+			fieldValue := reflect.Indirect(reflect.ValueOf(total)).FieldByName(fieldName)
+			if num, ok := fieldValue.Interface().(int); ok {
+				switch update.diff {
+				case totalIncr:
+					fieldValue.Set(reflect.ValueOf(num + 1))
+				case totalDecr:
+					fieldValue.Set(reflect.ValueOf(num - 1))
+				}
+			}
+		}
+		if _, err := c.dsClient.Put(ctx, totalKey, total); err != nil {
+			return err
+		}
+		return nil
+	}, nil); err != nil {
+		return err
+	}
+	if _, err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/sugyan/shogi-dataset/web/entity"
-	"google.golang.org/appengine"
 )
 
 // App struct
@@ -16,9 +15,9 @@ type App struct {
 }
 
 // NewApp function
-func NewApp(projectID string, isDev bool) (*App, error) {
+func NewApp(projectID, bucketName string, isDev bool) (*App, error) {
 	// configure entity client
-	entityClient, err := entity.NewClient(projectID)
+	entityClient, err := entity.NewClient(projectID, bucketName)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +31,7 @@ func NewApp(projectID string, isDev bool) (*App, error) {
 // Handler method
 func (app *App) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", appHandler)
+	mux.HandleFunc("/", app.appHandler)
 	// mux.HandleFunc("/count", countHandler)
 	// mux.HandleFunc("/task", taskHandler)
 
@@ -40,7 +39,7 @@ func (app *App) Handler() http.Handler {
 	apiHandler.HandleFunc("/index", app.apiIndexHandler)
 	apiHandler.HandleFunc("/image/", app.apiImageHandler)
 	apiHandler.HandleFunc("/images", app.apiImagesHandler)
-	// apiHandler.HandleFunc("/upload", apiUploadHandler)
+	apiHandler.HandleFunc("/upload", app.apiUploadHandler)
 	mux.Handle("/api/", http.StripPrefix("/api", apiHandler))
 
 	// adminHandler := http.NewServeMux()
@@ -51,20 +50,20 @@ func (app *App) Handler() http.Handler {
 	return mux
 }
 
-func appHandler(w http.ResponseWriter, r *http.Request) {
-	if err := renderTemplate(w); err != nil {
+func (app *App) appHandler(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w); err != nil {
 		log.Printf("failed to render template: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }
 
-func renderTemplate(w http.ResponseWriter) error {
+func (app *App) renderTemplate(w http.ResponseWriter) error {
 	t, err := template.ParseFiles("templates/index.html")
 	if err != nil {
 		return err
 	}
 	data := map[string]interface{}{}
-	if appengine.IsDevAppServer() {
+	if app.isDev {
 		data["js"] = "http://localhost:8081"
 	} else {
 		data["js"] = "/static/js"

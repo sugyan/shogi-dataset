@@ -13,7 +13,13 @@ import (
 
 func main() {
 	projectID := appengine.AppID(context.Background())
-	app, err := app.NewApp(projectID, appengine.IsDevAppServer())
+	isDev := appengine.IsDevAppServer()
+	bucketName := fmt.Sprintf("%s.appspot.com")
+	if isDev {
+		bucketName += "staging." + bucketName
+	}
+
+	app, err := app.NewApp(projectID, bucketName, isDev)
 	if err != nil {
 		log.Fatal(err)
 	}
