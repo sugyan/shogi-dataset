@@ -96,7 +96,11 @@ func (app *App) apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	key, err := app.entity.SaveImage(context.Background(), data, req.Label)
+	var userID int64
+	if u := app.currentUser(r.Context()); u != nil {
+		userID = u.ID
+	}
+	key, err := app.entity.SaveImage(context.Background(), data, req.Label, userID)
 	if err != nil {
 		log.Printf("failed to store data: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

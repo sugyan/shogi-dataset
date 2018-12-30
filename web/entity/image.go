@@ -20,7 +20,7 @@ import (
 type Image struct {
 	ImageURL  string
 	Label     string
-	UserID    string
+	User      *datastore.Key
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -35,6 +35,7 @@ type ImageResult struct {
 	ID        string    `json:"id,omitempty"`
 	ImageURL  string    `json:"image_url"`
 	Label     string    `json:"label"`
+	User      string    `json:"user"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -51,10 +52,15 @@ func (c *Client) GetImage(ctx context.Context, key *datastore.Key) (*ImageResult
 	if err := c.dsClient.Get(ctx, key, result); err != nil {
 		return nil, err
 	}
+	user, err := c.GetUser(ctx, result.User.ID)
+	if err != nil {
+		return nil, err
+	}
 	return &ImageResult{
 		ID:        key.Name,
 		ImageURL:  result.ImageURL,
 		Label:     result.Label,
+		User:      user.Name,
 		CreatedAt: result.CreatedAt,
 		UpdatedAt: result.UpdatedAt,
 	}, nil
@@ -113,7 +119,7 @@ func (c *Client) FetchRecentImages(ctx context.Context, params url.Values) (*Ima
 }
 
 // SaveImage method
-func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string) (*datastore.Key, error) {
+func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string, userID int64) (*datastore.Key, error) {
 	// calculate digest
 	hash := md5.New()
 	hash.Write(imageData)
@@ -127,6 +133,7 @@ func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string) 
 		if err == datastore.ErrNoSuchEntity {
 			created = true
 			image.CreatedAt = time.Now()
+			image.User = datastore.IDKey(KindUser, userID, nil)
 		} else {
 			return nil, err
 		}
@@ -137,10 +144,7 @@ func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string) 
 		return nil, err
 	}
 	log.Printf("stored image: %s", imageURL)
-	// u := user.Current(ctx)
-	// if u != nil {
-	// 	image.UserID = u.ID
-	// }
+
 	image.ImageURL = imageURL
 	image.Label = label
 	image.UpdatedAt = time.Now()
