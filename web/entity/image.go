@@ -112,8 +112,8 @@ func (c *Client) FetchRecentImages(ctx context.Context, params url.Values) (*Ima
 	return results, nil
 }
 
-// RegisterImage method
-func (c *Client) RegisterImage(ctx context.Context, imageData []byte, label string) (*datastore.Key, error) {
+// SaveImage method
+func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string) (*datastore.Key, error) {
 	// calculate digest
 	hash := md5.New()
 	hash.Write(imageData)

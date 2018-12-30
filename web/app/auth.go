@@ -4,9 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+
+	"github.com/sugyan/shogi-dataset/web/entity"
 )
 
 type contextKey string
@@ -16,10 +20,15 @@ const (
 	userSessionKey   = "user"
 
 	contextKeyUser contextKey = "user"
+
+	githubUserAPIURL = "https://api.github.com/user"
 )
 
+var errInvalidState = fmt.Errorf("invalid state")
+
 type user struct {
-	ID string
+	ID   int64
+	Role entity.UserRole
 }
 
 func init() {
@@ -87,8 +96,17 @@ func (app *App) oauth2GithubHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		state := fmt.Sprintf("%02x", b)
-		// TODO: save state to session
+		// save state to session
+		stateSession, err := app.session.New(r, state)
+		if err != nil {
+			return err
+		}
+		stateSession.Options.MaxAge = 10 * 60 // 10 minutes
+		if err := stateSession.Save(r, w); err != nil {
+			return err
+		}
 		http.Redirect(w, r, app.oauth2.AuthCodeURL(state), http.StatusFound)
+
 		return nil
 	}(); err != nil {
 		log.Printf("failed to redirect: %s", err.Error())
@@ -98,27 +116,60 @@ func (app *App) oauth2GithubHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
-	if err := func() error {
-		// TODO: validate state
-		// TODO: get token and profile
-
+	if err := func(ctx context.Context) error {
+		// validate state
+		stateSession, err := app.session.Get(r, r.FormValue("state"))
+		if err != nil {
+			return err
+		}
+		if stateSession.IsNew {
+			return errInvalidState
+		}
+		// get token and profile
+		token, err := app.oauth2.Exchange(ctx, r.FormValue("code"))
+		if err != nil {
+			return err
+		}
+		client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
+		res, err := client.Get(githubUserAPIURL)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+		userInfo := struct {
+			ID    int64  `json:"id"`
+			Login string `json:"login"`
+		}{}
+		if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
+			return err
+		}
+		// save user info to datastore
+		u, err := app.entity.SaveUser(r.Context(), userInfo.ID, userInfo.Login)
+		if err != nil {
+			return err
+		}
 		// save user info to session
 		defaultSession, err := app.session.New(r, defaultSessionID)
 		if err != nil {
 			return err
 		}
 		defaultSession.Values[userSessionKey] = &user{
-			ID: "user",
+			ID:   userInfo.ID,
+			Role: u.Role,
 		}
 		if err := defaultSession.Save(r, w); err != nil {
 			return err
 		}
-
 		http.Redirect(w, r, "/", http.StatusFound)
+
 		return nil
-	}(); err != nil {
+	}(r.Context()); err != nil {
 		log.Printf("failed to process callback request: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		if err == errInvalidState {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		} else {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 		return
 	}
 }

@@ -11,6 +11,7 @@ import (
 const (
 	KindImage = "Image"
 	KindTotal = "Total"
+	KindUser  = "User"
 )
 
 // Client type
