@@ -88,18 +88,19 @@ func (app *App) apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("failed to decode request body: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 	data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(req.Image, "data:image/jpeg;base64,"))
 	if err != nil {
 		log.Printf("failed to decode request image: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 	key, err := app.entity.SaveImage(context.Background(), data, req.Label)
 	if err != nil {
 		log.Printf("failed to store data: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
-	log.Printf("%v saved", key.Encode())
-
-	w.WriteHeader(http.StatusOK)
+	log.Printf("saved: %s", key.Name)
 }

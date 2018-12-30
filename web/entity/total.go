@@ -96,13 +96,9 @@ func (c *Client) CountTotal(ctx context.Context) error {
 }
 
 func (c *Client) updateTotal(ctx context.Context, updates ...*totalUpdate) error {
-	tx, err := c.dsClient.NewTransaction(ctx)
-	if err != nil {
-		return err
-	}
 	if _, err := c.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-		total, err := c.GetTotal(ctx)
-		if err != nil {
+		total := &Total{}
+		if err := tx.Get(totalKey, total); err != nil {
 			return err
 		}
 		for _, update := range updates {
@@ -117,14 +113,11 @@ func (c *Client) updateTotal(ctx context.Context, updates ...*totalUpdate) error
 				}
 			}
 		}
-		if _, err := c.dsClient.Put(ctx, totalKey, total); err != nil {
+		if _, err := tx.Put(totalKey, total); err != nil {
 			return err
 		}
 		return nil
-	}, nil); err != nil {
-		return err
-	}
-	if _, err := tx.Commit(); err != nil {
+	}); err != nil {
 		return err
 	}
 	return nil

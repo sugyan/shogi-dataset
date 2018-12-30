@@ -18,7 +18,7 @@ func main() {
 	bucketName := fmt.Sprintf("%s.appspot.com", projectID)
 	redirectURL := fmt.Sprintf("https://%s.appspot.com/oauth2/callback", projectID)
 	if isDev {
-		bucketName += "staging." + bucketName
+		bucketName = "staging." + bucketName
 		redirectURL = "http://localhost:8080/oauth2/callback"
 	}
 	app, err := app.NewApp(&app.Config{

@@ -147,7 +147,6 @@ func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string) 
 	if _, err := c.dsClient.Put(ctx, key, image); err != nil {
 		return nil, err
 	}
-	log.Printf("stored entity: %s", key.Name)
 
 	// update total count
 	if created {
