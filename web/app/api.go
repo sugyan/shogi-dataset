@@ -18,6 +18,29 @@ type filter struct {
 	value     interface{}
 }
 
+func (app *App) apiUserHandler(w http.ResponseWriter, r *http.Request) {
+	result := struct {
+		Name string `json:"name,omitempty"`
+		Role string `json:"role,omitempty"`
+	}{}
+	u := app.currentUser(r.Context())
+	if u != nil {
+		user, err := app.entity.GetUser(r.Context(), u.ID)
+		if err != nil {
+			log.Printf("failed to get user: %s", err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		result.Name = user.Name
+		result.Role = string(user.Role)
+	}
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		log.Printf("failed to encode json: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (app *App) apiIndexHandler(w http.ResponseWriter, r *http.Request) {
 	total, err := app.entity.GetTotal(r.Context())
 	if err != nil {

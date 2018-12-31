@@ -64,7 +64,6 @@ func NewApp(config *Config) (*App, error) {
 func (app *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", app.appHandler)
-	mux.HandleFunc("/login", app.loginHandler)
 	mux.HandleFunc("/logout", app.logoutHandler)
 
 	authHandler := http.NewServeMux()

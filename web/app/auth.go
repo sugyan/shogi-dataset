@@ -35,13 +35,6 @@ func init() {
 	gob.Register(&user{})
 }
 
-func (app *App) loginHandler(w http.ResponseWriter, r *http.Request) {
-	if err := app.renderTemplate(w, "login.html"); err != nil {
-		log.Printf("failed to render template: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-}
-
 func (app *App) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	if err := func() error {
 		session, err := app.session.New(r, defaultSessionID)

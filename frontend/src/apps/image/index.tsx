@@ -10,6 +10,7 @@ type ImageIndexProps = RouteComponentProps<{ id: string }>;
 interface Iimage {
     image_url: string;
     label: string;
+    user?: string;
     created_at: string;
     updated_at: string;
 }
@@ -39,7 +40,7 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
         });
     }
     public render() {
-        const { image_url, label, created_at, updated_at } = this.state;
+        const { image_url, label, user, created_at, updated_at } = this.state;
         const format: string = "yyyy-LL-dd TT";
         if (!image_url) {
             return null;
@@ -57,6 +58,8 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
                   <Link to={`/label/${label}`}><pre style={{ display: "inline" }}>{label}</pre></Link>
                   )
                 </dd>
+                <dt>Uploaded by</dt>
+                <dd>{user}</dd>
                 <dt>Created at</dt>
                 <dd>{DateTime.fromISO(created_at).toFormat(format)}</dd>
                 <dt>Updated at</dt>
