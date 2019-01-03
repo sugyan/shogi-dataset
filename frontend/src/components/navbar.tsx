@@ -34,12 +34,14 @@ class Navbar extends React.Component<Props, InavbarState> {
         const { showDropdown } = this.state;
         let editorMenu: React.ReactNode;
         let userMenu: React.ReactNode;
-        if (user && user.role === userRole.editor) {
-            editorMenu = (
-                <li className="nav-item">
-                  <Link to="/upload" className="nav-link">Upload</Link>
-                </li>
-            );
+        if (user) {
+            if (user.role === userRole.editor) {
+                editorMenu = (
+                    <li className="nav-item">
+                      <Link to="/upload" className="nav-link">Upload</Link>
+                    </li>
+                );
+            }
             userMenu = (
                 <div>
                   <ul className="navbar-nav">
