@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -17,6 +16,8 @@ type filter struct {
 	filterStr string
 	value     interface{}
 }
+
+var errForbidden = fmt.Errorf("editing is forbidden")
 
 func (app *App) apiUserHandler(w http.ResponseWriter, r *http.Request) {
 	result := struct {
@@ -59,9 +60,10 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, "/image/")
 	key := datastore.NameKey(entity.KindImage, name, nil)
 	if err := func(method string) error {
+		ctx := r.Context()
 		switch method {
 		case "GET":
-			image, err := app.entity.GetImage(r.Context(), key)
+			image, err := app.entity.GetImage(ctx, key)
 			if err != nil {
 				return err
 			}
@@ -69,23 +71,37 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 		case "DELETE":
-			if err := app.entity.DeleteImage(r.Context(), key); err != nil {
-				return err
+			user := app.currentUser(ctx)
+			if user != nil && user.canEdit() {
+				if err := app.entity.DeleteImage(ctx, key); err != nil {
+					return err
+				}
+			} else {
+				return errForbidden
 			}
 		case "PUT":
-			if err := r.ParseForm(); err != nil {
-				return err
-			}
-			if err := app.entity.UpdateImage(r.Context(), key, r.Form.Get("label")); err != nil {
-				return err
+			user := app.currentUser(ctx)
+			if user != nil && user.canEdit() {
+				if err := r.ParseForm(); err != nil {
+					return err
+				}
+				if err := app.entity.UpdateImage(ctx, key, r.Form.Get("label")); err != nil {
+					return err
+				}
+			} else {
+				return errForbidden
 			}
 		default:
 			return fmt.Errorf("method %s is not supported", method)
 		}
 		return nil
 	}(r.Method); err != nil {
-		log.Printf("failed to do %s image: %s", r.Method, err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		if err == errForbidden {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		} else {
+			log.Printf("failed to do %s image: %s", r.Method, err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -104,6 +120,12 @@ func (app *App) apiImagesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) apiUploadHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := app.currentUser(ctx)
+	if !(user != nil && user.canEdit()) {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
 	req := struct {
 		Label string `json:"label"`
 		Image string `json:"image"`
@@ -119,11 +141,7 @@ func (app *App) apiUploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	var userID int64
-	if u := app.currentUser(r.Context()); u != nil {
-		userID = u.ID
-	}
-	key, err := app.entity.SaveImage(context.Background(), data, req.Label, userID)
+	key, err := app.entity.SaveImage(ctx, data, req.Label, user.ID)
 	if err != nil {
 		log.Printf("failed to store data: %s", err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

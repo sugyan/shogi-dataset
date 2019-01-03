@@ -31,6 +31,13 @@ type user struct {
 	Role entity.UserRole
 }
 
+func (u *user) canEdit() bool {
+	if u.Role == entity.RoleEditor {
+		return true
+	}
+	return false
+}
+
 func init() {
 	gob.Register(&user{})
 }

@@ -163,6 +163,10 @@ func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string, 
 
 // DeleteImage method
 func (c *Client) DeleteImage(ctx context.Context, key *datastore.Key) error {
+	// delete object from Cloud Storage
+	if err := c.deleteObject(ctx, key.Name); err != nil {
+		return err
+	}
 	// get entity for getting label name
 	image := &Image{}
 	if err := c.dsClient.Get(ctx, key, image); err != nil {
@@ -174,10 +178,6 @@ func (c *Client) DeleteImage(ctx context.Context, key *datastore.Key) error {
 	}
 	// update total count
 	if err := c.updateTotal(ctx, &totalUpdate{image.Label, totalDecr}); err != nil {
-		return err
-	}
-	// delete object from Cloud Storage
-	if err := c.deleteObject(ctx, key.Name); err != nil {
 		return err
 	}
 	return nil
