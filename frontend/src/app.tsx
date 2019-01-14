@@ -1,8 +1,9 @@
 import * as React from "react";
 import { connect } from "react-redux";
-import { BrowserRouter, Link, Route } from "react-router-dom";
+import { BrowserRouter, Route } from "react-router-dom";
 import { Dispatch } from "redux";
 
+import Api from "./apps/api";
 import Image from "./apps/image";
 import Index from "./apps/index";
 import Label from "./apps/label";
@@ -41,6 +42,7 @@ class App extends React.Component<Props> {
                 <Navbar />
                 <div className="container py-md-3">
                   <Route exact path="/" component={Index} />
+                  <Route exact path="/api" component={Api} />
                   <Route exact path="/login" component={Login} />
                   <Route path="/image" component={Image} />
                   <Route path="/label/:label" component={Label} />

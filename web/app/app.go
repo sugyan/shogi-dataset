@@ -72,6 +72,7 @@ func (app *App) Handler() http.Handler {
 	mux.Handle("/oauth2/", http.StripPrefix("/oauth2", authHandler))
 
 	apiHandler := http.NewServeMux()
+	apiHandler.HandleFunc("/", app.appHandler)
 	apiHandler.HandleFunc("/user", app.auth(app.apiUserHandler))
 	apiHandler.HandleFunc("/index", app.auth(app.apiIndexHandler))
 	apiHandler.HandleFunc("/image/", app.auth(app.apiImageHandler))

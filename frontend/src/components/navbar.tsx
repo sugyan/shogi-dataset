@@ -50,6 +50,8 @@ class Navbar extends React.Component<Props, InavbarState> {
                         {user.name}
                       </a>
                       <div className={`dropdown-menu dropdown-menu-right ${showDropdown ? "show" : ""}`}>
+                        <Link to="/api" className="dropdown-item">API</Link>
+                        <div className="dropdown-divider" />
                         <a className="dropdown-item" href="/logout">Logout</a>
                       </div>
                     </li>
