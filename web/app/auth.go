@@ -24,8 +24,6 @@ const (
 	githubUserAPIURL = "https://api.github.com/user"
 )
 
-var errInvalidState = fmt.Errorf("invalid state")
-
 type user struct {
 	ID   int64
 	Role entity.UserRole
@@ -42,26 +40,21 @@ func init() {
 	gob.Register(&user{})
 }
 
-func (app *App) logoutHandler(w http.ResponseWriter, r *http.Request) {
-	if err := func() error {
-		session, err := app.session.New(r, defaultSessionID)
-		if err != nil {
-			return err
-		}
-		session.Options.MaxAge = -1
-		if err := session.Save(r, w); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+func (app *App) logoutHandler(w http.ResponseWriter, r *http.Request) *appError {
+	session, err := app.session.New(r, defaultSessionID)
+	if err != nil {
+		return &appError{err, "failed to create new session"}
+	}
+	session.Options.MaxAge = -1
+	if err := session.Save(r, w); err != nil {
+		return &appError{err, "failed to save session"}
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
+	return nil
 }
 
-func (app *App) auth(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (app *App) authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := func() error {
 			session, err := app.session.Get(r, defaultSessionID)
 			if err != nil {
@@ -74,11 +67,12 @@ func (app *App) auth(handler func(http.ResponseWriter, *http.Request)) func(http
 			}
 			return nil
 		}(); err != nil {
+			log.Printf("failed to process request in auth middleware: %s", err.Error())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		handler(w, r)
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (app *App) currentUser(ctx context.Context) *user {
@@ -88,88 +82,72 @@ func (app *App) currentUser(ctx context.Context) *user {
 	return nil
 }
 
-func (app *App) oauth2GithubHandler(w http.ResponseWriter, r *http.Request) {
-	if err := func() error {
-		b := make([]byte, 8)
-		_, err := rand.Read(b)
-		if err != nil {
-			return err
-		}
-		state := fmt.Sprintf("%02x", b)
-		// save state to session
-		stateSession, err := app.session.New(r, state)
-		if err != nil {
-			return err
-		}
-		stateSession.Options.MaxAge = 10 * 60 // 10 minutes
-		if err := stateSession.Save(r, w); err != nil {
-			return err
-		}
-		http.Redirect(w, r, app.oauth2.AuthCodeURL(state), http.StatusFound)
-
-		return nil
-	}(); err != nil {
-		log.Printf("failed to redirect: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+func (app *App) oauth2GithubHandler(w http.ResponseWriter, r *http.Request) *appError {
+	b := make([]byte, 8)
+	_, err := rand.Read(b)
+	if err != nil {
+		return &appError{err, "failed to generate state"}
 	}
+	state := fmt.Sprintf("%02x", b)
+	// save state to session
+	stateSession, err := app.session.New(r, state)
+	if err != nil {
+		return &appError{err, "failed to create new session"}
+	}
+	stateSession.Options.MaxAge = 10 * 60 // 10 minutes
+	if err := stateSession.Save(r, w); err != nil {
+		return &appError{err, "failed to save session"}
+	}
+	http.Redirect(w, r, app.oauth2.AuthCodeURL(state), http.StatusFound)
+	return nil
 }
 
-func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
-	if err := func(ctx context.Context) error {
-		// validate state
-		stateSession, err := app.session.Get(r, r.FormValue("state"))
-		if err != nil {
-			return err
-		}
-		if stateSession.IsNew {
-			return errInvalidState
-		}
-		// get token and profile
-		token, err := app.oauth2.Exchange(ctx, r.FormValue("code"))
-		if err != nil {
-			return err
-		}
-		client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
-		res, err := client.Get(githubUserAPIURL)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-		userInfo := struct {
-			ID    int64  `json:"id"`
-			Login string `json:"login"`
-		}{}
-		if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
-			return err
-		}
-		// save user info to datastore
-		u, err := app.entity.SaveUser(r.Context(), userInfo.ID, userInfo.Login)
-		if err != nil {
-			return err
-		}
-		// save user info to session
-		defaultSession, err := app.session.New(r, defaultSessionID)
-		if err != nil {
-			return err
-		}
-		defaultSession.Values[userSessionKey] = &user{
-			ID:   userInfo.ID,
-			Role: u.Role,
-		}
-		if err := defaultSession.Save(r, w); err != nil {
-			return err
-		}
-		http.Redirect(w, r, "/", http.StatusFound)
-
-		return nil
-	}(r.Context()); err != nil {
-		log.Printf("failed to process callback request: %s", err.Error())
-		if err == errInvalidState {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		} else {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-		return
+func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) *appError {
+	ctx := r.Context()
+	// validate state
+	stateSession, err := app.session.Get(r, r.FormValue("state"))
+	if err != nil {
+		return &appError{err, "failed to get session"}
 	}
+	if stateSession.IsNew {
+		log.Printf("invalid state value")
+		return errBadRequest
+	}
+	// get token and profile
+	token, err := app.oauth2.Exchange(ctx, r.FormValue("code"))
+	if err != nil {
+		return &appError{err, "failed to exchange to token"}
+	}
+	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
+	res, err := client.Get(githubUserAPIURL)
+	if err != nil {
+		return &appError{err, "failed to get user info"}
+	}
+	defer res.Body.Close()
+	userInfo := struct {
+		ID    int64  `json:"id"`
+		Login string `json:"login"`
+	}{}
+	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
+		return &appError{err, "failed to encode json"}
+	}
+	// save user info to datastore
+	u, err := app.entity.SaveUser(ctx, userInfo.ID, userInfo.Login)
+	if err != nil {
+		return &appError{err, "failed to save user info"}
+	}
+	// save user info to session
+	defaultSession, err := app.session.New(r, defaultSessionID)
+	if err != nil {
+		return &appError{err, "failed to create new session"}
+	}
+	defaultSession.Values[userSessionKey] = &user{
+		ID:   userInfo.ID,
+		Role: u.Role,
+	}
+	if err := defaultSession.Save(r, w); err != nil {
+		return &appError{err, "failed to save session"}
+	}
+	http.Redirect(w, r, "/", http.StatusFound)
+	return nil
 }

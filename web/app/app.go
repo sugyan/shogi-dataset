@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/sugyan/shogi-dataset/web/entity"
 	"golang.org/x/oauth2"
@@ -29,6 +30,24 @@ type Config struct {
 	Oauth2ClientSecret string
 	Oauth2RedirectURL  string
 	CookieKey          string
+}
+
+type appHandler func(http.ResponseWriter, *http.Request) *appError
+
+func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := fn(w, r); err != nil {
+		log.Printf("failed to process request: %s [%s]", err.message, err.err.Error())
+		switch err {
+		case errBadRequest:
+			http.Error(w, err.message, http.StatusBadRequest)
+		case errForbidden:
+			http.Error(w, err.message, http.StatusForbidden)
+		case errNotFound:
+			http.Error(w, err.message, http.StatusNotFound)
+		default:
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+	}
 }
 
 // NewApp function
@@ -62,36 +81,41 @@ func NewApp(config *Config) (*App, error) {
 
 // Handler method
 func (app *App) Handler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", app.appHandler)
-	mux.HandleFunc("/logout", app.logoutHandler)
-
-	authHandler := http.NewServeMux()
-	authHandler.HandleFunc("/github", app.oauth2GithubHandler)
-	authHandler.HandleFunc("/callback", app.oauth2CallbackHandler)
-	mux.Handle("/oauth2/", http.StripPrefix("/oauth2", authHandler))
-
-	apiHandler := http.NewServeMux()
-	apiHandler.HandleFunc("/", app.appHandler)
-	apiHandler.HandleFunc("/user", app.auth(app.apiUserHandler))
-	apiHandler.HandleFunc("/index", app.auth(app.apiIndexHandler))
-	apiHandler.HandleFunc("/image/", app.auth(app.apiImageHandler))
-	apiHandler.HandleFunc("/images", app.auth(app.apiImagesHandler))
-	apiHandler.HandleFunc("/upload", app.auth(app.apiUploadHandler))
-	mux.Handle("/api/", http.StripPrefix("/api", apiHandler))
-
-	adminHandler := http.NewServeMux()
-	adminHandler.HandleFunc("/count", app.countHandler)
-	mux.Handle("/admin/", http.StripPrefix("/admin", adminHandler))
-
-	return mux
+	router := mux.NewRouter()
+	router.Handle("/logout", appHandler(app.logoutHandler))
+	// router for oauth2 endpoints
+	authRouter := router.PathPrefix("/oauth2").Subrouter()
+	authRouter.Handle("/github", appHandler(app.oauth2GithubHandler))
+	authRouter.Handle("/callback", appHandler(app.oauth2CallbackHandler))
+	// router for API endpoints
+	apiRouter := router.PathPrefix("/api").Subrouter()
+	apiRouter.Use(app.authMiddleware)
+	apiRouter.Handle("/user", appHandler(app.apiUserHandler)).
+		Methods("GET")
+	apiRouter.Handle("/index", appHandler(app.apiIndexHandler)).
+		Methods("GET")
+	apiRouter.Handle("/images", appHandler(app.apiImagesHandler)).
+		Methods("GET")
+	apiRouter.Handle("/image/{id:[0-9a-f]+}", appHandler(app.apiImageHandler)).
+		Methods("GET", "PUT", "DELETE")
+	apiRouter.Handle("/upload", appHandler(app.apiUploadHandler)).
+		Methods("POST")
+	apiRouter.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
+	// router for admin endpoints
+	adminRouter := router.PathPrefix("/admin").Subrouter()
+	adminRouter.Handle("/count", appHandler(app.countHandler))
+	// wildcard endpoints
+	router.PathPrefix("/").Handler(appHandler(app.appHandler))
+	return router
 }
 
-func (app *App) appHandler(w http.ResponseWriter, r *http.Request) {
+func (app *App) appHandler(w http.ResponseWriter, r *http.Request) *appError {
 	if err := app.renderTemplate(w, "index.html"); err != nil {
-		log.Printf("failed to render template: %s", err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return &appError{err, "failed to render template"}
 	}
+	return nil
 }
 
 func (app *App) renderTemplate(w http.ResponseWriter, filename string) error {
