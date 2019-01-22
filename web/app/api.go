@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -63,8 +62,8 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) *appErro
 			return &appError{err, "failed to encode json"}
 		}
 	case "DELETE":
-		user := app.currentUser(ctx)
-		if user != nil && user.canEdit() {
+		u := app.currentUser(ctx)
+		if u != nil && u.canEdit() {
 			if err := app.entity.DeleteImage(ctx, key); err != nil {
 				return &appError{err, "failed to delete image"}
 			}
@@ -72,8 +71,8 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) *appErro
 			return errForbidden
 		}
 	case "PUT":
-		user := app.currentUser(ctx)
-		if user != nil && user.canEdit() {
+		u := app.currentUser(ctx)
+		if u != nil && u.canEdit() {
 			if err := r.ParseForm(); err != nil {
 				return &appError{err, "failed to parse form"}
 			}
@@ -84,7 +83,7 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) *appErro
 			return errForbidden
 		}
 	default:
-		return &appError{mux.ErrMethodMismatch, fmt.Sprintf("method %s is not supported", r.Method)}
+		return errMethodNotAllowed
 	}
 	return nil
 }
@@ -102,8 +101,8 @@ func (app *App) apiImagesHandler(w http.ResponseWriter, r *http.Request) *appErr
 
 func (app *App) apiUploadHandler(w http.ResponseWriter, r *http.Request) *appError {
 	ctx := r.Context()
-	user := app.currentUser(ctx)
-	if !(user != nil && user.canEdit()) {
+	u := app.currentUser(ctx)
+	if !(u != nil && u.canEdit()) {
 		return errForbidden
 	}
 	req := struct {
@@ -117,10 +116,45 @@ func (app *App) apiUploadHandler(w http.ResponseWriter, r *http.Request) *appErr
 	if err != nil {
 		return &appError{err, "failed to decode request image"}
 	}
-	key, err := app.entity.SaveImage(ctx, data, req.Label, user.ID)
+	key, err := app.entity.SaveImage(ctx, data, req.Label, u.ID)
 	if err != nil {
 		return &appError{err, "failed to store data"}
 	}
 	log.Printf("saved: %s", key.Name)
+	return nil
+}
+
+func (app *App) apiTokenHandler(w http.ResponseWriter, r *http.Request) *appError {
+	ctx := r.Context()
+	u := app.currentUser(ctx)
+	if u == nil {
+		return errUnauthorized
+	}
+
+	switch r.Method {
+	case "GET":
+		keys, err := app.entity.FetchTokens(ctx, u.ID)
+		if err != nil {
+			return &appError{err, "failed to get token"}
+		}
+		tokens := []string{}
+		for _, key := range keys {
+			tokens = append(tokens, key.Name)
+		}
+		if err := json.NewEncoder(w).Encode(tokens); err != nil {
+			return &appError{err, "failed to encode json"}
+		}
+	case "POST":
+		key, err := app.entity.GenerateToken(ctx, u.ID)
+		if err != nil {
+			return &appError{err, "failed to generate token"}
+		}
+		tokens := []string{key.Name}
+		if err := json.NewEncoder(w).Encode(tokens); err != nil {
+			return &appError{err, "failed to encode json"}
+		}
+	default:
+		return errMethodNotAllowed
+	}
 	return nil
 }

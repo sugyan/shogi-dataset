@@ -40,10 +40,14 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case errBadRequest:
 			http.Error(w, err.message, http.StatusBadRequest)
+		case errUnauthorized:
+			http.Error(w, err.message, http.StatusUnauthorized)
 		case errForbidden:
 			http.Error(w, err.message, http.StatusForbidden)
 		case errNotFound:
 			http.Error(w, err.message, http.StatusNotFound)
+		case errMethodNotAllowed:
+			http.Error(w, err.message, http.StatusMethodNotAllowed)
 		default:
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
@@ -100,6 +104,8 @@ func (app *App) Handler() http.Handler {
 		Methods("GET", "PUT", "DELETE")
 	apiRouter.Handle("/upload", appHandler(app.apiUploadHandler)).
 		Methods("POST")
+	apiRouter.Handle("/token", appHandler(app.apiTokenHandler)).
+		Methods("GET", "POST")
 	apiRouter.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})

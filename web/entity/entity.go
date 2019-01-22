@@ -12,6 +12,7 @@ const (
 	KindImage = "Image"
 	KindTotal = "Total"
 	KindUser  = "User"
+	KindToken = "Token"
 )
 
 // Client type

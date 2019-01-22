@@ -9,7 +9,9 @@ import (
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"strings"
 
+	"cloud.google.com/go/datastore"
 	"github.com/sugyan/shogi-dataset/web/entity"
 )
 
@@ -56,6 +58,7 @@ func (app *App) logoutHandler(w http.ResponseWriter, r *http.Request) *appError 
 func (app *App) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := func() error {
+			// retrieve from session
 			session, err := app.session.Get(r, defaultSessionID)
 			if err != nil {
 				return err
@@ -63,7 +66,26 @@ func (app *App) authMiddleware(next http.Handler) http.Handler {
 			if value, exist := session.Values[userSessionKey]; exist {
 				if u, ok := value.(*user); ok {
 					r = r.WithContext(context.WithValue(r.Context(), contextKeyUser, u))
+					return nil
 				}
+			}
+			// retrieve from heaaders
+			authHeader := r.Header.Get("Authorization")
+			bearerPrefix := "Bearer "
+			if strings.HasPrefix(authHeader, bearerPrefix) {
+				token := strings.TrimPrefix(authHeader, bearerPrefix)
+				t, err := app.entity.GetToken(r.Context(), token)
+				if err != nil {
+					if err == datastore.ErrNoSuchEntity {
+						return nil
+					}
+					return err
+				}
+				u, err := app.entity.GetUser(r.Context(), t.User.ID)
+				if err != nil {
+					return err
+				}
+				r = r.WithContext(context.WithValue(r.Context(), contextKeyUser, &user{t.User.ID, u.Role}))
 			}
 			return nil
 		}(); err != nil {
