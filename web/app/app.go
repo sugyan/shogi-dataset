@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/sugyan/shogi-dataset/web/entity"
@@ -30,6 +31,8 @@ type Config struct {
 	Oauth2ClientSecret string
 	Oauth2RedirectURL  string
 	CookieKey          string
+	RedisURL           string
+	RedisPassword      string
 }
 
 type appHandler func(http.ResponseWriter, *http.Request) *appError
@@ -56,8 +59,23 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // NewApp function
 func NewApp(config *Config) (*App, error) {
+	// configure redis pool
+	pool := &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			conn, err := redis.DialURL("redis://" + config.RedisURL)
+			if err != nil {
+				return nil, err
+			}
+			if config.RedisPassword != "" {
+				if _, err := conn.Do("AUTH", config.RedisPassword); err != nil {
+					return nil, err
+				}
+			}
+			return conn, nil
+		},
+	}
 	// configure entity client
-	entityClient, err := entity.NewClient(config.ProjectID, config.BucketName)
+	entityClient, err := entity.NewClient(config.ProjectID, config.BucketName, pool)
 	if err != nil {
 		return nil, err
 	}

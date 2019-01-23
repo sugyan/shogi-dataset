@@ -74,13 +74,14 @@ class Api extends React.Component<{}, Istate> {
             name: "Get images",
             params: [
                 { key: "cursor", value: "string" },
+                { key: "label", value: "string" },
             ],
         }];
         const apiUrlBase: string = `${location.protocol}//${location.host}`;
         const docs: React.ReactNode = apis.map((e: Iapi, i: number) => {
             const params: React.ReactNode = e.params.map((p: Iparam, j: number) => {
                 return (
-                    <li key={j}><var>{p.key}</var>: <code>{p.value}</code></li>
+                    <li key={j}><code>{p.key}</code>: <var>{p.value}</var></li>
                 );
             });
             return (

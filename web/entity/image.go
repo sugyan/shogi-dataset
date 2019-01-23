@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/storage"
+	"github.com/gomodule/redigo/redis"
 	"google.golang.org/api/iterator"
 )
 
@@ -76,11 +78,20 @@ func (c *Client) FetchRecentImages(ctx context.Context, params url.Values) (*Ima
 		}
 		cursor := params.Get("cursor")
 		if cursor != "" {
-			c, err := datastore.DecodeCursor(cursor)
+			conn := c.redisPool.Get()
+			defer conn.Close()
+			reply, err := redis.String(conn.Do("GET", cursor))
 			if err != nil {
-				return nil, err
+				if err != redis.ErrNil {
+					return nil, err
+				}
+			} else {
+				c, err := datastore.DecodeCursor(reply)
+				if err != nil {
+					return nil, err
+				}
+				query = query.Start(c)
 			}
-			query = query.Start(c)
 		}
 		query = query.Order("-UpdatedAt").Limit(defaultLimit)
 	}
@@ -110,10 +121,21 @@ func (c *Client) FetchRecentImages(ctx context.Context, params url.Values) (*Ima
 	}
 	results := &ImagesResult{
 		Images: images,
-		Cursor: cursor.String(),
 	}
-	if len(images) < defaultLimit {
-		results.Cursor = ""
+	if len(images) >= defaultLimit {
+		data := cursor.String()
+		hash := sha1.New()
+		if _, err := hash.Write([]byte(data)); err != nil {
+			return nil, err
+		}
+		checksum := hash.Sum(nil)
+		key := hex.EncodeToString(checksum[:])
+		conn := c.redisPool.Get()
+		defer conn.Close()
+		if _, err := conn.Do("SET", key, data); err != nil {
+			return nil, err
+		}
+		results.Cursor = key
 	}
 	return results, nil
 }
@@ -164,8 +186,11 @@ func (c *Client) SaveImage(ctx context.Context, imageData []byte, label string, 
 // DeleteImage method
 func (c *Client) DeleteImage(ctx context.Context, key *datastore.Key) error {
 	// delete object from Cloud Storage
-	if err := c.deleteObject(ctx, key.Name); err != nil {
-		return err
+	if err := c.csBucket.Object(key.Name).Delete(ctx); err != nil {
+		if err != storage.ErrObjectNotExist {
+			return err
+		}
+		log.Println(err.Error())
 	}
 	// get entity for getting label name
 	image := &Image{}
@@ -226,8 +251,4 @@ func (c *Client) storeObject(ctx context.Context, fileName string, data []byte) 
 		return "", err
 	}
 	return fmt.Sprintf(urlFormat, c.csBucketName, fileName), nil
-}
-
-func (c *Client) deleteObject(ctx context.Context, fileName string) error {
-	return c.csBucket.Object(fileName).Delete(ctx)
 }

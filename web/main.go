@@ -29,6 +29,8 @@ func main() {
 		Oauth2ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
 		Oauth2RedirectURL:  redirectURL,
 		CookieKey:          os.Getenv("COOKIE_KEY"),
+		RedisURL:           os.Getenv("REDIS_URL"),
+		RedisPassword:      os.Getenv("REDIS_PASSWORD"),
 	})
 	if err != nil {
 		log.Fatal(err)
