@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"cloud.google.com/go/datastore"
@@ -37,12 +38,39 @@ func (app *App) apiUserHandler(w http.ResponseWriter, r *http.Request) *appError
 	return nil
 }
 
-func (app *App) apiIndexHandler(w http.ResponseWriter, r *http.Request) *appError {
+func (app *App) apiTotalHandler(w http.ResponseWriter, r *http.Request) *appError {
 	total, err := app.entity.GetTotal(r.Context())
 	if err != nil {
 		return &appError{err, "failed to fetch total"}
 	}
 	if err := json.NewEncoder(w).Encode(total); err != nil {
+		return &appError{err, "failed to render json"}
+	}
+	return nil
+}
+
+func (app *App) apiLatestHandler(w http.ResponseWriter, r *http.Request) *appError {
+	results, err := app.entity.FetchRecentImages(r.Context(), url.Values{})
+	if err != nil {
+		return &appError{err, "failed to fetch images"}
+	}
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		return &appError{err, "failed to render json"}
+	}
+	return nil
+}
+
+func (app *App) apiImagesHandler(w http.ResponseWriter, r *http.Request) *appError {
+	ctx := r.Context()
+	u := app.currentUser(ctx)
+	if u == nil {
+		return errUnauthorized
+	}
+	results, err := app.entity.FetchRecentImages(ctx, r.URL.Query())
+	if err != nil {
+		return &appError{err, "failed to fetch images"}
+	}
+	if err := json.NewEncoder(w).Encode(results); err != nil {
 		return &appError{err, "failed to render json"}
 	}
 	return nil
@@ -84,17 +112,6 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) *appErro
 		}
 	default:
 		return errMethodNotAllowed
-	}
-	return nil
-}
-
-func (app *App) apiImagesHandler(w http.ResponseWriter, r *http.Request) *appError {
-	results, err := app.entity.FetchRecentImages(r.Context(), r.URL.Query())
-	if err != nil {
-		return &appError{err, "failed to fetch images"}
-	}
-	if err := json.NewEncoder(w).Encode(results); err != nil {
-		return &appError{err, "failed to render json"}
 	}
 	return nil
 }

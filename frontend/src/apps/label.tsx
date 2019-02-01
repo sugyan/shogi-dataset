@@ -50,7 +50,10 @@ class Label extends React.Component<Props, IlabelState> {
         fetch(
             `/api/images?${queryString(params)}`,
         ).then((res: Response) => {
-            return res.json();
+            if (res.ok) {
+                return res.json();
+            }
+            throw new Error(res.statusText);
         }).then((results: IimagesResult) => {
             this.setState({
                 cursor: results.cursor,
@@ -61,7 +64,7 @@ class Label extends React.Component<Props, IlabelState> {
         });
         // fetch index to get total numbers
         fetch(
-            "/api/index",
+            "/api/total",
         ).then((res: Response) => {
             return res.json();
         }).then((total: numbers) => {

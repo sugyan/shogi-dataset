@@ -64,7 +64,7 @@ class Api extends React.Component<{}, Istate> {
             params: Iparam[];
         }
         const apis: Iapi[] = [{
-            endpoint: "/api/index",
+            endpoint: "/api/total",
             method: "GET",
             name: "Get total",
             params: [],

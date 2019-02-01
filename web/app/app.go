@@ -114,7 +114,9 @@ func (app *App) Handler() http.Handler {
 	apiRouter.Use(app.authMiddleware)
 	apiRouter.Handle("/user", appHandler(app.apiUserHandler)).
 		Methods("GET")
-	apiRouter.Handle("/index", appHandler(app.apiIndexHandler)).
+	apiRouter.Handle("/total", appHandler(app.apiTotalHandler)).
+		Methods("GET")
+	apiRouter.Handle("/latest", appHandler(app.apiLatestHandler)).
 		Methods("GET")
 	apiRouter.Handle("/images", appHandler(app.apiImagesHandler)).
 		Methods("GET")

@@ -42,22 +42,24 @@ class Navbar extends React.Component<Props, InavbarState> {
                     </li>
                 );
             }
-            userMenu = (
-                <div>
-                  <ul className="navbar-nav">
-                    <li className="nav-item dropdown">
-                      <a className="nav-link dropdown-toggle" href="#" onClick={this.toggleDropdown.bind(this)}>
-                        {user.name}
-                      </a>
-                      <div className={`dropdown-menu dropdown-menu-right ${showDropdown ? "show" : ""}`}>
-                        <Link to="/api" className="dropdown-item">API</Link>
-                        <div className="dropdown-divider" />
-                        <a className="dropdown-item" href="/logout">Logout</a>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-            );
+            if (user.role !== userRole.anonymous) {
+                userMenu = (
+                    <div>
+                      <ul className="navbar-nav">
+                        <li className="nav-item dropdown">
+                          <a className="nav-link dropdown-toggle" href="#" onClick={this.toggleDropdown.bind(this)}>
+                            {user.name}
+                          </a>
+                          <div className={`dropdown-menu dropdown-menu-right ${showDropdown ? "show" : ""}`}>
+                            <Link to="/api" className="dropdown-item">API</Link>
+                            <div className="dropdown-divider" />
+                            <a className="dropdown-item" href="/logout">Logout</a>
+                          </div>
+                        </li>
+                      </ul>
+                    </div>
+                );
+            }
         }
         return (
             <nav className="navbar navbar-expand-lg navbar-light bg-light">

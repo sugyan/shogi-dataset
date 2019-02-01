@@ -38,7 +38,7 @@ class Index extends React.Component<Props, IindexState> {
     }
     public componentDidMount() {
         fetch(
-            "/api/index",
+            "/api/total",
         ).then((res: Response) => {
             return res.json();
         }).then((total: numbers) => {
@@ -47,7 +47,7 @@ class Index extends React.Component<Props, IindexState> {
             window.console.error(err.message);
         });
         fetch(
-            "/api/images",
+            "/api/latest",
         ).then((res: Response) => {
             return res.json();
         }).then((results: IimagesResult) => {
