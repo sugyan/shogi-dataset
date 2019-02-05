@@ -48,13 +48,13 @@ type ImagesResult struct {
 	Cursor string         `json:"cursor"`
 }
 
-// GetImage method
-func (c *Client) GetImage(ctx context.Context, key *datastore.Key) (*ImageResult, error) {
+// FetchImage method
+func (c *Client) FetchImage(ctx context.Context, key *datastore.Key) (*ImageResult, error) {
 	result := &Image{}
 	if err := c.dsClient.Get(ctx, key, result); err != nil {
 		return nil, err
 	}
-	user, err := c.GetUser(ctx, result.User.ID)
+	user, err := c.FetchUser(ctx, result.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (c *Client) GetImage(ctx context.Context, key *datastore.Key) (*ImageResult
 	}, nil
 }
 
-// FetchRecentImages method
-func (c *Client) FetchRecentImages(ctx context.Context, params url.Values) (*ImagesResult, error) {
+// FetchImages method
+func (c *Client) FetchImages(ctx context.Context, params url.Values) (*ImagesResult, error) {
 	query := datastore.NewQuery(KindImage)
 	{
 		label := params.Get("label")

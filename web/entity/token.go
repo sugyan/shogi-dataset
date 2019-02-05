@@ -16,8 +16,8 @@ type Token struct {
 	CreatedAt time.Time
 }
 
-// GetToken method
-func (c *Client) GetToken(ctx context.Context, token string) (*Token, error) {
+// FetchToken method
+func (c *Client) FetchToken(ctx context.Context, token string) (*Token, error) {
 	t := &Token{}
 	if err := c.dsClient.Get(ctx, datastore.NameKey(KindToken, token, nil), t); err != nil {
 		return nil, err

@@ -74,14 +74,14 @@ func (app *App) authMiddleware(next http.Handler) http.Handler {
 			bearerPrefix := "Bearer "
 			if strings.HasPrefix(authHeader, bearerPrefix) {
 				token := strings.TrimPrefix(authHeader, bearerPrefix)
-				t, err := app.entity.GetToken(r.Context(), token)
+				t, err := app.entity.FetchToken(r.Context(), token)
 				if err != nil {
 					if err == datastore.ErrNoSuchEntity {
 						return nil
 					}
 					return err
 				}
-				u, err := app.entity.GetUser(r.Context(), t.User.ID)
+				u, err := app.entity.FetchUser(r.Context(), t.User.ID)
 				if err != nil {
 					return err
 				}

@@ -56,8 +56,8 @@ type totalUpdate struct {
 
 var totalKey = datastore.IDKey(KindTotal, 1, nil)
 
-// GetTotal method
-func (c *Client) GetTotal(ctx context.Context) (*Total, error) {
+// FetchTotal method
+func (c *Client) FetchTotal(ctx context.Context) (*Total, error) {
 	total := &Total{}
 	if err := c.dsClient.Get(ctx, totalKey, total); err != nil {
 		if err == datastore.ErrNoSuchEntity {

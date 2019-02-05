@@ -25,7 +25,7 @@ func (app *App) apiUserHandler(w http.ResponseWriter, r *http.Request) *appError
 	}{}
 	u := app.currentUser(r.Context())
 	if u != nil {
-		user, err := app.entity.GetUser(r.Context(), u.ID)
+		user, err := app.entity.FetchUser(r.Context(), u.ID)
 		if err != nil {
 			return &appError{err, "failed to get user"}
 		}
@@ -39,7 +39,7 @@ func (app *App) apiUserHandler(w http.ResponseWriter, r *http.Request) *appError
 }
 
 func (app *App) apiTotalHandler(w http.ResponseWriter, r *http.Request) *appError {
-	total, err := app.entity.GetTotal(r.Context())
+	total, err := app.entity.FetchTotal(r.Context())
 	if err != nil {
 		return &appError{err, "failed to fetch total"}
 	}
@@ -50,7 +50,7 @@ func (app *App) apiTotalHandler(w http.ResponseWriter, r *http.Request) *appErro
 }
 
 func (app *App) apiLatestHandler(w http.ResponseWriter, r *http.Request) *appError {
-	results, err := app.entity.FetchRecentImages(r.Context(), url.Values{})
+	results, err := app.entity.FetchImages(r.Context(), url.Values{})
 	if err != nil {
 		return &appError{err, "failed to fetch images"}
 	}
@@ -66,7 +66,7 @@ func (app *App) apiImagesHandler(w http.ResponseWriter, r *http.Request) *appErr
 	if u == nil {
 		return errUnauthorized
 	}
-	results, err := app.entity.FetchRecentImages(ctx, r.URL.Query())
+	results, err := app.entity.FetchImages(ctx, r.URL.Query())
 	if err != nil {
 		return &appError{err, "failed to fetch images"}
 	}
@@ -82,7 +82,7 @@ func (app *App) apiImageHandler(w http.ResponseWriter, r *http.Request) *appErro
 	ctx := r.Context()
 	switch r.Method {
 	case "GET":
-		image, err := app.entity.GetImage(ctx, key)
+		image, err := app.entity.FetchImage(ctx, key)
 		if err != nil {
 			return errNotFound
 		}

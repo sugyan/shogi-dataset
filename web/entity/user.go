@@ -21,8 +21,8 @@ type User struct {
 	Role UserRole
 }
 
-// GetUser method
-func (c *Client) GetUser(ctx context.Context, id int64) (*User, error) {
+// FetchUser method
+func (c *Client) FetchUser(ctx context.Context, id int64) (*User, error) {
 	u := &User{}
 	if err := c.dsClient.Get(ctx, datastore.IDKey(KindUser, id, nil), u); err != nil {
 		return nil, err
