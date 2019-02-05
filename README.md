@@ -52,4 +52,5 @@ protoc -I $TENSORFLOW_DIR $TENSORFLOW_DIR/tensorflow/core/example/feature.proto 
 ### Execution
 
 ```
+go run cmd/download/main.go -host <HOSTNAME> -token <API token>
 ```
