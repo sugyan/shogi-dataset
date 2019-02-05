@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/url"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -70,33 +71,12 @@ func (c *Client) FetchImage(ctx context.Context, key *datastore.Key) (*ImageResu
 
 // FetchImages method
 func (c *Client) FetchImages(ctx context.Context, params url.Values) (*ImagesResult, error) {
-	query := datastore.NewQuery(KindImage)
-	{
-		label := params.Get("label")
-		if label != "" {
-			query = query.Filter("Label =", label)
-		}
-		cursor := params.Get("cursor")
-		if cursor != "" {
-			conn := c.redisPool.Get()
-			defer conn.Close()
-			reply, err := redis.String(conn.Do("GET", cursor))
-			if err != nil {
-				if err != redis.ErrNil {
-					return nil, err
-				}
-			} else {
-				c, err := datastore.DecodeCursor(reply)
-				if err != nil {
-					return nil, err
-				}
-				query = query.Start(c)
-			}
-		}
-		query = query.Order("-UpdatedAt").Limit(defaultLimit)
+	query, limit, err := c.fetchImagesQuery(params)
+	if err != nil {
+		return nil, err
 	}
 
-	images := make([]*ImageResult, 0, defaultLimit)
+	images := make([]*ImageResult, 0, limit)
 	iter := c.dsClient.Run(ctx, query)
 	for {
 		result := &Image{}
@@ -122,7 +102,7 @@ func (c *Client) FetchImages(ctx context.Context, params url.Values) (*ImagesRes
 	results := &ImagesResult{
 		Images: images,
 	}
-	if len(images) >= defaultLimit {
+	if len(images) >= limit {
 		data := cursor.String()
 		hash := sha1.New()
 		if _, err := hash.Write([]byte(data)); err != nil {
@@ -138,6 +118,44 @@ func (c *Client) FetchImages(ctx context.Context, params url.Values) (*ImagesRes
 		results.Cursor = key
 	}
 	return results, nil
+}
+
+func (c *Client) fetchImagesQuery(params url.Values) (*datastore.Query, int, error) {
+	query := datastore.NewQuery(KindImage)
+	// label
+	label := params.Get("label")
+	if label != "" {
+		query = query.Filter("Label =", label)
+	}
+	// cursor
+	cursor := params.Get("cursor")
+	if cursor != "" {
+		conn := c.redisPool.Get()
+		defer conn.Close()
+		reply, err := redis.String(conn.Do("GET", cursor))
+		if err != nil {
+			if err != redis.ErrNil {
+				return nil, 0, err
+			}
+		} else {
+			c, err := datastore.DecodeCursor(reply)
+			if err != nil {
+				return nil, 0, err
+			}
+			query = query.Start(c)
+		}
+	}
+	// limit
+	limit := defaultLimit
+	count := params.Get("count")
+	if count != "" {
+		i64, err := strconv.Atoi(count)
+		if err != nil {
+			return nil, 0, err
+		}
+		limit = i64
+	}
+	return query.Order("-UpdatedAt").Limit(limit), limit, nil
 }
 
 // SaveImage method

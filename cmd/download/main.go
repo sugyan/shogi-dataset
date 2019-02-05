@@ -140,7 +140,7 @@ loop:
 				break loop
 			}
 			if result.err != nil {
-				return err
+				return result.err
 			}
 			if result.uid%100 < 90 {
 				log.Printf("write to train.tfrecord (%v bytes)", len(result.data))
@@ -171,8 +171,11 @@ func getImages() (<-chan *entity.ImageResult, error) {
 
 	ch := make(chan *entity.ImageResult)
 	go func() {
+		q := url.Values{}
+		q.Set("count", "200")
 		defer close(ch)
 		for {
+			req.URL.RawQuery = q.Encode()
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				log.Fatal(err)
@@ -189,10 +192,7 @@ func getImages() (<-chan *entity.ImageResult, error) {
 			if results.Cursor == "" {
 				break
 			}
-			q := url.Values{
-				"cursor": []string{results.Cursor},
-			}
-			req.URL.RawQuery = q.Encode()
+			q.Set("cursor", results.Cursor)
 		}
 	}()
 	return ch, nil
