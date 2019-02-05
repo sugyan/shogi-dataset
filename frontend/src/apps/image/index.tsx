@@ -66,7 +66,7 @@ class ImageIndex extends React.Component<Props, IimageIndexState> {
               </button>
             </React.Fragment>
         );
-        const label: React.ReactNode = user
+        const label: React.ReactNode = user && user.role !== userRole.anonymous
             ? <Link to={`/label/${image.label}`}><pre style={{ display: "inline" }}>{image.label}</pre></Link>
             : <pre style={{ display: "inline" }}>{image.label}</pre>;
         return (
