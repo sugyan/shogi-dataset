@@ -1,14 +1,42 @@
 import * as React from "react";
 
 interface Istate {
+    responses: string[];
     submitting: boolean;
     tokens: string[];
 }
 
+interface Iparam {
+    key: string;
+    required: boolean;
+}
+
+interface Iapi {
+    endpoint: string;
+    method: string;
+    name: string;
+    params: Iparam[];
+}
+
 class Api extends React.Component<{}, Istate> {
+    private apis: Iapi[] = [{
+        endpoint: "/api/total",
+        method: "GET",
+        name: "Get total",
+        params: [],
+    }, {
+        endpoint: "/api/images",
+        method: "GET",
+        name: "Get images",
+        params: [
+            { key: "cursor", required: false },
+            { key: "label", required: false },
+        ],
+    }];
     public constructor(props: any) {
         super(props);
         this.state = {
+            responses: [],
             submitting: false,
             tokens: [],
         };
@@ -19,7 +47,7 @@ class Api extends React.Component<{}, Istate> {
         ).then((res: Response) => {
             return res.json();
         }).then((tokens: string[]) => {
-            this.setState({ tokens });
+            this.updateTokens(tokens);
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
@@ -52,36 +80,13 @@ class Api extends React.Component<{}, Istate> {
         );
     }
     private renderDocuments(token: string): React.ReactNode {
+        const { responses } = this.state;
         const header: string = `-H 'Authorization: Bearer ${token}'`;
-        interface Iparam {
-            key: string;
-            value: string;
-        }
-        interface Iapi {
-            endpoint: string;
-            method: string;
-            name: string;
-            params: Iparam[];
-        }
-        const apis: Iapi[] = [{
-            endpoint: "/api/total",
-            method: "GET",
-            name: "Get total",
-            params: [],
-        }, {
-            endpoint: "/api/images",
-            method: "GET",
-            name: "Get images",
-            params: [
-                { key: "cursor", value: "string" },
-                { key: "label", value: "string" },
-            ],
-        }];
         const apiUrlBase: string = `${location.protocol}//${location.host}`;
-        const docs: React.ReactNode = apis.map((e: Iapi, i: number) => {
+        const docs: React.ReactNode = this.apis.map((e: Iapi, i: number) => {
             const params: React.ReactNode = e.params.map((p: Iparam, j: number) => {
                 return (
-                    <li key={j}><code>{p.key}</code>: <var>{p.value}</var></li>
+                    <li key={j}><code>{p.key}</code>: <var>{p.required ? "required" : "optional"}</var></li>
                 );
             });
             return (
@@ -98,6 +103,12 @@ class Api extends React.Component<{}, Istate> {
                     </dd>
                     <dt>Example</dt>
                     <dd><code>{`curl ${header} ${apiUrlBase}${e.endpoint}`}</code></dd>
+                    <dt>Response</dt>
+                    <dd>
+                      <pre style={{ backgroundColor: "#f7f7f9", padding: 10 }}>
+                        <samp>{responses[i]}</samp>
+                      </pre>
+                    </dd>
                   </dl>
                 </React.Fragment>
             );
@@ -118,11 +129,36 @@ class Api extends React.Component<{}, Istate> {
         ).then((res: Response) => {
             return res.json();
         }).then((tokens: string[]) => {
-            this.setState({ tokens });
+            this.updateTokens(tokens);
         }).catch((err: Error) => {
             window.console.error(err.message);
         }).finally(() => {
             this.setState({ submitting: false });
+        });
+    }
+    private updateTokens(tokens: string[]) {
+        this.setState({ tokens }, () => {
+            this.apis.forEach((api: Iapi, index: number) => {
+                fetch(
+                    api.endpoint, {
+                        credentials: "omit",
+                        headers: {
+                            Authorization: `Bearer ${tokens[0]}`,
+                        },
+                    },
+                ).then((res: Response) => {
+                    if (res.ok) {
+                        return res.json();
+                    }
+                    throw new Error(res.statusText);
+                }).then((json) => {
+                    const { responses } = this.state;
+                    responses[index] = JSON.stringify(json, null, "  ");
+                    this.setState({ responses });
+                }).catch((err: Error) => {
+                    window.console.error(err.message);
+                });
+            });
         });
     }
 }
