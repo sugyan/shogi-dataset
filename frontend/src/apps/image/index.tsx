@@ -1,29 +1,35 @@
 import { DateTime } from "luxon";
 import * as React from "react";
+import { connect } from "react-redux";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Link } from "react-router-dom";
 
+import { Istate } from "../../redux/reducer";
+import { Iuser, userRole } from "../../redux/reducers/common";
 import { labels, labelStringMap } from "../../utils/piece";
 
-type ImageIndexProps = RouteComponentProps<{ id: string }>;
+interface IstateProps {
+    user?: Iuser;
+}
+
+type Props = IstateProps & RouteComponentProps<{ id: string }>;
 
 interface Iimage {
     image_url: string;
     label: string;
+    user?: string;
     created_at: string;
     updated_at: string;
 }
 
-type ImageIndexState = Iimage;
+interface IimageIndexState {
+    image?: Iimage;
+}
 
-class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
-    public constructor(props: ImageIndexProps) {
+class ImageIndex extends React.Component<Props, IimageIndexState> {
+    public constructor(props: Props) {
         super(props);
         this.state = {
-            created_at: "",
-            image_url: "",
-            label: "",
-            updated_at: "",
         };
     }
     public componentDidMount() {
@@ -32,37 +38,21 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
             `/api/image/${match.params.id}`,
         ).then((res: Response) => {
             return res.json();
-        }).then((result: Iimage) => {
-            this.setState({ ...result });
+        }).then((image: Iimage) => {
+            this.setState({ image });
         }).catch((err: Error) => {
             window.console.error(err.message);
         });
     }
     public render() {
-        const { image_url, label, created_at, updated_at } = this.state;
+        const { user } = this.props;
+        const { image } = this.state;
         const format: string = "yyyy-LL-dd TT";
-        if (!image_url) {
+        if (!image) {
             return null;
         }
-        return (
-            <div>
-              <img src={image_url} className="img-thumbnail" />
-              <hr />
-              <dl>
-                <dt>Image URL</dt>
-                <dd><a href={image_url} target="_blank">{image_url}</a></dd>
-                <dt>Label</dt>
-                <dd>
-                  {labelStringMap[label as labels]} (
-                  <Link to={`/label/${label}`}><pre style={{ display: "inline" }}>{label}</pre></Link>
-                  )
-                </dd>
-                <dt>Created at</dt>
-                <dd>{DateTime.fromISO(created_at).toFormat(format)}</dd>
-                <dt>Updated at</dt>
-                <dd>{DateTime.fromISO(updated_at).toFormat(format)}</dd>
-              </dl>
-              <hr />
+        const editButtons: React.ReactNode = (
+            <React.Fragment>
               <button
                 className="btn btn-info"
                 style={{ marginRight: 10 }}
@@ -74,6 +64,31 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
                 onClick={this.onClickDeleteButton.bind(this)}>
                 Delete
               </button>
+            </React.Fragment>
+        );
+        const label: React.ReactNode = user
+            ? <Link to={`/label/${image.label}`}><pre style={{ display: "inline" }}>{image.label}</pre></Link>
+            : <pre style={{ display: "inline" }}>{image.label}</pre>;
+        return (
+            <div>
+              <img src={image.image_url} className="img-thumbnail" />
+              <hr />
+              <dl>
+                <dt>Image URL</dt>
+                <dd><a href={image.image_url} target="_blank">{image.image_url}</a></dd>
+                <dt>Label</dt>
+                <dd>
+                  {labelStringMap[image.label as labels]} ({label})
+                </dd>
+                <dt>Uploaded by</dt>
+                <dd>{image.user}</dd>
+                <dt>Created at</dt>
+                <dd>{DateTime.fromISO(image.created_at).toFormat(format)}</dd>
+                <dt>Updated at</dt>
+                <dd>{DateTime.fromISO(image.updated_at).toFormat(format)}</dd>
+              </dl>
+              <hr />
+              {user && user.role === userRole.editor && editButtons}
             </div>
         );
     }
@@ -96,4 +111,12 @@ class ImageIndex extends React.Component<ImageIndexProps, ImageIndexState> {
         });
     }
 }
-export default withRouter(ImageIndex);
+export default withRouter(
+    connect(
+        (state: Istate): IstateProps => {
+            return {
+                user: state.commonReducer.user,
+            };
+        },
+    )(ImageIndex),
+);

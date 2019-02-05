@@ -1,29 +1,26 @@
 package main
 
 import (
-	"context"
 	"crypto/md5"
 	"encoding/binary"
+	"encoding/json"
 	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"cloud.google.com/go/datastore"
-	"github.com/sugyan/shogi-dataset"
 	"github.com/sugyan/shogi-dataset/tfrecord"
+	"github.com/sugyan/shogi-dataset/web/entity"
 	"github.com/tensorflow/tensorflow/tensorflow/go/core/example"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/iterator"
-	"google.golang.org/appengine/remote_api"
 )
 
 var (
-	host      string
-	projectID string
+	host  string
+	token string
 )
 
 var (
@@ -68,8 +65,8 @@ type result struct {
 }
 
 func init() {
-	flag.StringVar(&host, "host", "localhost:8080", "hostname of Remote API")
-	flag.StringVar(&projectID, "projectID", "local", "project ID")
+	flag.StringVar(&host, "host", "http://localhost:8080", "hostname of API endpoint")
+	flag.StringVar(&token, "token", "", "token for APIs")
 
 	for i, label := range labels {
 		labelIDMap[label] = int64(i)
@@ -161,45 +158,47 @@ loop:
 	return nil
 }
 
-func getImages() (<-chan *dataset.Image, error) {
-	client, err := google.DefaultClient(context.Background(),
-		"https://www.googleapis.com/auth/appengine.apis",
-		"https://www.googleapis.com/auth/userinfo.email",
-		"https://www.googleapis.com/auth/cloud-platform",
-	)
+func getImages() (<-chan *entity.ImageResult, error) {
+	u, err := url.ParseRequestURI(host + "/api/images")
 	if err != nil {
 		return nil, err
 	}
-	ctx, err := remote_api.NewRemoteContext(host, client)
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Authorization", "Bearer "+token)
 
-	dsClient, err := datastore.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, err
-	}
-	ch := make(chan *dataset.Image)
+	ch := make(chan *entity.ImageResult)
 	go func() {
 		defer close(ch)
-		query := datastore.NewQuery(dataset.KindImage)
-		iter := dsClient.Run(ctx, query)
 		for {
-			var image dataset.Image
-			_, err := iter.Next(&image)
-			if err == iterator.Done {
-				break
-			}
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				log.Fatal(err)
 			}
-			ch <- &image
+			defer resp.Body.Close()
+
+			results := &entity.ImagesResult{}
+			if err := json.NewDecoder(resp.Body).Decode(results); err != nil {
+				log.Fatal(err)
+			}
+			for _, imageResult := range results.Images {
+				ch <- imageResult
+			}
+			if results.Cursor == "" {
+				break
+			}
+			q := url.Values{
+				"cursor": []string{results.Cursor},
+			}
+			req.URL.RawQuery = q.Encode()
 		}
 	}()
 	return ch, nil
 }
 
-func worker(imagesCh <-chan *dataset.Image, resultCh chan<- *result) {
+func worker(imagesCh <-chan *entity.ImageResult, resultCh chan<- *result) {
 	for image := range imagesCh {
 		data, err := encode(image)
 		if err != nil {
@@ -214,7 +213,7 @@ func worker(imagesCh <-chan *dataset.Image, resultCh chan<- *result) {
 	}
 }
 
-func encode(image *dataset.Image) ([]byte, error) {
+func encode(image *entity.ImageResult) ([]byte, error) {
 	log.Printf("download %s", image.ImageURL)
 	resp, err := http.Get(image.ImageURL)
 	if err != nil {

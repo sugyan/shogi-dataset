@@ -1,38 +1,63 @@
 import * as React from "react";
-import { BrowserRouter, Link, Route } from "react-router-dom";
+import { connect } from "react-redux";
+import { BrowserRouter, Route } from "react-router-dom";
+import { Dispatch } from "redux";
 
+import Api from "./apps/api";
 import Image from "./apps/image";
 import Index from "./apps/index";
 import Label from "./apps/label";
+import Login from "./apps/login";
 import Upload from "./apps/upload";
+import Navbar from "./components/navbar";
+import { CommonAction, setUserAction } from "./redux/actions/common";
+import { Istate } from "./redux/reducer";
+import { Iuser, userRole } from "./redux/reducers/common";
 
-export default class App extends React.Component {
+interface IdispatchProps {
+    setUser: (user: Iuser) => CommonAction;
+}
+
+type Props = IdispatchProps;
+
+class App extends React.Component<Props> {
+    public componentDidMount() {
+        const { setUser } = this.props;
+        fetch(
+            "/api/user",
+        ).then((res: Response) => {
+            return res.json();
+        }).then((user: Iuser) => {
+            if (user.name && user.role) {
+                setUser(user);
+            } else {
+                setUser({ role: userRole.anonymous });
+            }
+        });
+    }
     public render() {
         return (
             <BrowserRouter>
               <div>
-                <nav className="navbar navbar-expand-lg navbar-light bg-light">
-                  <div className="container">
-                    <Link to="/" className="navbar-brand">Shogi Dataset</Link>
-                    <div className="collapse navbar-collapse">
-                      <ul className="navbar-nav">
-                        <li className="nav-item">
-                          <Link to="/upload" className="nav-link">Upload</Link>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </nav>
+                <Navbar />
                 <div className="container py-md-3">
-                  <div>
-                    <Route exact path="/" component={Index} />
-                    <Route path="/image" component={Image} />
-                    <Route path="/label/:label" component={Label} />
-                    <Route exact path="/upload" component={Upload} />
-                  </div>
+                  <Route exact path="/" component={Index} />
+                  <Route exact path="/api" component={Api} />
+                  <Route exact path="/login" component={Login} />
+                  <Route path="/image" component={Image} />
+                  <Route path="/label/:label" component={Label} />
+                  <Route exact path="/upload" component={Upload} />
                 </div>
               </div>
             </BrowserRouter>
         );
     }
 }
+export default connect(
+    (state: Istate) => state,
+    (dispatch: Dispatch): IdispatchProps => {
+        return {
+            setUser: (user: Iuser): CommonAction => dispatch(setUserAction(user)),
+        };
+    },
+)(App);

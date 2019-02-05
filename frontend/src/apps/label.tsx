@@ -1,8 +1,11 @@
 import { DateTime } from "luxon";
 import * as React from "react";
+import { connect } from "react-redux";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Link } from "react-router-dom";
 
+import { Istate } from "../redux/reducer";
+import { Iuser, userRole } from "../redux/reducers/common";
 import { Iparameter, predictResultString, queryString } from "../utils/common";
 import { labels, labelStringMap, numbers } from "../utils/piece";
 import WorkerProxy, { IpredictResult } from "../utils/worker-proxy";
@@ -26,10 +29,14 @@ interface IlabelState {
     cursor: string;
 }
 
-type IlabelProps = RouteComponentProps<{ label: string }>;
+interface IstateProps {
+    user?: Iuser;
+}
 
-class Label extends React.Component<IlabelProps, IlabelState> {
-    public constructor(props: IlabelProps) {
+type Props = IstateProps & RouteComponentProps<{ label: string }>;
+
+class Label extends React.Component<Props, IlabelState> {
+    public constructor(props: Props) {
         super(props);
         this.state = {
             cursor: "",
@@ -43,7 +50,10 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         fetch(
             `/api/images?${queryString(params)}`,
         ).then((res: Response) => {
-            return res.json();
+            if (res.ok) {
+                return res.json();
+            }
+            throw new Error(res.statusText);
         }).then((results: IimagesResult) => {
             this.setState({
                 cursor: results.cursor,
@@ -54,7 +64,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         });
         // fetch index to get total numbers
         fetch(
-            "/api/index",
+            "/api/total",
         ).then((res: Response) => {
             return res.json();
         }).then((total: numbers) => {
@@ -64,7 +74,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         });
     }
     public render() {
-        const { match } = this.props;
+        const { user, match } = this.props;
         const { total, images, cursor } = this.state;
         let totalLabel: React.ReactNode;
         if (total !== undefined) {
@@ -92,7 +102,7 @@ class Label extends React.Component<IlabelProps, IlabelState> {
                       <img src={v.image_url} className="img-thumbnail" />
                     </Link>
                   </td>
-                  <td className="align-middle">{predict}</td>
+                  <td className="align-middle">{user && user.role === userRole.editor && predict}</td>
                   <td className="align-middle">{DateTime.fromISO(v.created_at).toFormat(format)}</td>
                   <td className="align-middle">{DateTime.fromISO(v.updated_at).toFormat(format)}</td>
                 </tr>
@@ -169,4 +179,12 @@ class Label extends React.Component<IlabelProps, IlabelState> {
         img.src = image.image_url;
     }
 }
-export default withRouter(Label);
+export default withRouter(
+    connect(
+        (state: Istate): IstateProps => {
+            return {
+                user: state.commonReducer.user,
+            };
+        },
+    )(Label),
+);

@@ -5,7 +5,9 @@ import { Route } from "react-router-dom";
 import ImageEdit from "./image/edit";
 import ImageIndex from "./image/index";
 
-class Image extends React.Component<RouteComponentProps<{}>> {
+type Props = RouteComponentProps<{}>;
+
+class Image extends React.Component<Props> {
     public render() {
         const { match } = this.props;
         return (
