@@ -1,5 +1,4 @@
 import * as tf from "@tensorflow/tfjs";
-import { loadFrozenModel } from "@tensorflow/tfjs-converter";
 
 interface Iscored {
     index: number;
@@ -12,8 +11,7 @@ interface Irequest {
 }
 
 const ctx: Worker = self as any;
-const MODEL_URL = `${process.env.MODEL_URL_BASE}/tensorflowjs_model.pb`;
-const WEIGHTS_URL = `${process.env.MODEL_URL_BASE}/weights_manifest.json`;
+const MODEL_URL = `${process.env.MODEL_URL_BASE}/model.json`;
 
 const inputQueue: Irequest[] = [];
 
@@ -22,9 +20,7 @@ const preloaded = (ev: MessageEvent) => {
 };
 ctx.addEventListener("message", preloaded);
 
-loadFrozenModel(
-    MODEL_URL, WEIGHTS_URL,
-).then((model: tf.FrozenModel) => {
+tf.loadGraphModel(MODEL_URL).then((model: tf.GraphModel) => {
     const labelsTensor: tf.Tensor = tf.tidy(() => {
         return model.execute(tf.tensor([], [0, 96, 96, 3]), "labels") as tf.Tensor;
     });
@@ -35,7 +31,7 @@ loadFrozenModel(
         const data: ImageData[] = request.inputs;
         // calcurate softmax
         const softmax: tf.Tensor = tf.tidy(() => {
-            const tensors: tf.Tensor[] = data.map((d: ImageData) => tf.fromPixels(d));
+            const tensors: tf.Tensor[] = data.map((d: ImageData) => tf.browser.fromPixels(d));
             const inputs: tf.Tensor = tf.stack(tensors).toFloat().div(tf.scalar(255.0));
             const logits: tf.Tensor = model.execute(inputs, "MobilenetV2/Logits/output") as tf.Tensor;
             return tf.softmax(logits);
