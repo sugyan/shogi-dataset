@@ -3,7 +3,11 @@ module.exports = {
         "browser": true,
         "es6": true
     },
-    "extends": "eslint:recommended",
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "react-app"
+    ],
     "globals": {
         "Atomics": "readonly",
         "SharedArrayBuffer": "readonly"
@@ -19,5 +23,11 @@ module.exports = {
         "react"
     ],
     "rules": {
+        "semi": "warn",
+        "quotes": "warn",
+        "@typescript-eslint/indent": [
+            "warn", 4, { "ignoredNodes": ["JSXElement"] },
+        ],
+        "react/jsx-indent": ["warn", 2],
     }
 };
