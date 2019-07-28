@@ -3,13 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@tensorflow/tfjs": "^1.2.5",
     "@types/jest": "24.0.15",
+    "@types/luxon": "^1.15.2",
     "@types/node": "12.6.8",
     "@types/react": "16.8.23",
     "@types/react-dom": "16.8.5",
+    "@types/react-redux": "^7.1.1",
+    "@types/react-router-dom": "^4.3.4",
+    "@types/reactstrap": "^8.0.1",
+    "@types/redux": "^3.6.0",
+    "bootstrap": "^4.3.1",
+    "http-proxy-middleware": "^0.19.1",
+    "luxon": "^1.17.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-redux": "^7.1.0",
+    "react-router-dom": "^5.0.1",
     "react-scripts": "3.0.1",
+    "reactstrap": "^8.0.1",
+    "redux": "^4.0.4",
     "typescript": "3.5.3"
   },
   "scripts": {
@@ -32,5 +45,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "http://localhost:8080"
 }
