@@ -25,6 +25,7 @@ module.exports = {
     "rules": {
         "semi": "warn",
         "quotes": "warn",
+        "no-trailing-spaces": "warn",
         "comma-dangle": ["warn", "always-multiline"],
         "@typescript-eslint/indent": [
             "warn", 4, { "ignoredNodes": ["JSXElement"] },
