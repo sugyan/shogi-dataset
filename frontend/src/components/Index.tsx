@@ -2,23 +2,10 @@ import React from "react";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 
-// import { Istate } from "../redux/reducer";
-// import { Iuser, userRole } from "../redux/reducers/common";
 import { User, UserRole } from "../redux/reducers";
-import { labels, labelStringMap, numbers } from "../utils/piece";
 import { AppState } from "../redux/store";
-
-interface Image {
-    id: string;
-    image_url: string;
-    label: string;
-    created_at: string;
-}
-
-// interface IimagesResult {
-//     images: Iimage[];
-//     cursor: string;
-// }
+import { NumbersResponse, ImageResponse, ImagesResponse } from "../utils/api";
+import { labels, labelStringMap } from "../utils/piece";
 
 interface StateProps {
     user?: User;
@@ -27,8 +14,8 @@ interface StateProps {
 type Props = StateProps;
 
 interface State {
-    recent: Image[];
-    total?: numbers;
+    recent: ImageResponse[];
+    total?: NumbersResponse;
 }
 
 class Index extends React.Component<Props, State> {
@@ -41,22 +28,22 @@ class Index extends React.Component<Props, State> {
     public componentDidMount(): void {
         fetch(
             "/api/total",
-        ).then((res: Response): Promise<numbers> => {
+        ).then((res: Response): Promise<NumbersResponse> => {
             return res.json();
-        }).then((total: numbers): void => {
+        }).then((total: NumbersResponse): void => {
             this.setState({ total });
         }).catch((err: Error): void => {
             window.console.error(err.message);
         });
-    //     fetch(
-    //         "/api/latest",
-    //     ).then((res: Response) => {
-    //         return res.json();
-    //     }).then((results: IimagesResult) => {
-    //         this.setState({ recent: results.images });
-    //     }).catch((err: Error) => {
-    //         window.console.error(err.message);
-    //     });
+        fetch(
+            "/api/latest",
+        ).then((res: Response): Promise<ImagesResponse> => {
+            return res.json();
+        }).then((results: ImagesResponse): void => {
+            this.setState({ recent: results.images });
+        }).catch((err: Error): void => {
+            window.console.error(err.message);
+        });
     }
     public render(): JSX.Element {
         const { user } = this.props;
@@ -72,13 +59,9 @@ class Index extends React.Component<Props, State> {
         ) : null;
         const totalTableRows = Object.values(labels).map((e: labels, i: number): JSX.Element => {
             const value: number = total ? total[e] : 0;
-            // const totalValue = (user && user.role !== userRole.anonymous)
-            // ? (
-            //     <Link to={`/label/${e}`} className="btn btn-sm btn-link">{value}</Link>
-            // ) : (
-            //     <button className="btn btn-sm" disabled={true}>{value}</button>
-            // );
-            const totalValue = <Link to={`/label/${e}`} className="btn btn-sm btn-link">{value}</Link>;
+            const totalValue = (user && user.role !== UserRole.anonymous)
+                ? <Link to={`/label/${e}`} className="btn btn-sm btn-link">{value}</Link>
+                : <button className="btn btn-sm" disabled={true}>{value}</button>;
             return (
               <tr key={i}>
                 <td className="align-middle">{labelStringMap[e]}</td>
@@ -86,22 +69,22 @@ class Index extends React.Component<Props, State> {
               </tr>
             );
         });
-        // const images = recent.map((image: Iimage, i: number) => {
-        //     return (
-        //         <div
-        //           key={i}
-        //           className="card"
-        //           style={{ width: 96 + 2, float: "left", marginRight: 5, marginBottom: 10 }}
-        //         >
-        //           <Link to={`/image/${image.id}`}>
-        //             <img src={image.image_url} className="card-img-top" />
-        //           </Link>
-        //           <div className="card-body">
-        //             {labelStringMap[image.label as labels]}
-        //           </div>
-        //         </div>
-        //     );
-        // });
+        const images = recent.map((image: ImageResponse, i: number): JSX.Element => {
+            return (
+              <div
+                  key={i}
+                  className="card"
+                  style={{ width: 96 + 2, float: "left", marginRight: 5, marginBottom: 10 }}
+              >
+                <Link to={`/image/${image.id}`}>
+                  <img src={image.image_url} alt="piece img" className="card-img-top" />
+                </Link>
+                <div className="card-body">
+                  {labelStringMap[image.label as labels]}
+                </div>
+              </div>
+            );
+        });
         return (
           <div>
             {loginAlert}
@@ -114,7 +97,7 @@ class Index extends React.Component<Props, State> {
               </div>
               <div className="col-sm">
                 <h2>Recently updated</h2>
-                {/* {images} */}
+                {images}
               </div>
             </div>
           </div>

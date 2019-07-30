@@ -1,27 +1,18 @@
 import { DateTime } from "luxon";
-import * as React from "react";
-// import { connect } from "react-redux";
+import React from "react";
+import { connect } from "react-redux";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Link } from "react-router-dom";
 
-// import { Istate } from "../redux/reducer";
-// import { Iuser, userRole } from "../redux/reducers/common";
+import { AppState } from "../redux/store";
+import { User, UserRole } from "../redux/reducers";
+import { ImagesResponse, NumbersResponse, ImageResponse } from "../utils/api";
 import { queryString, predictResultString } from "../utils/functions";
-import { labels, labelStringMap, numbers } from "../utils/piece";
+import { labels, labelStringMap } from "../utils/piece";
 import { PredictResult, Predictor } from "../utils/predictor";
-// import WorkerProxy, { IpredictResult } from "../utils/worker-proxy";
 
-interface Image {
-    id: string;
-    image_url: string;
-    created_at: string;
-    updated_at: string;
+interface Image extends ImageResponse {
     predict_result?: PredictResult[];
-}
-
-interface ImagesResult {
-    images: Image[];
-    cursor: string;
 }
 
 interface State {
@@ -30,12 +21,11 @@ interface State {
     cursor: string;
 }
 
-// interface IstateProps {
-//     user?: Iuser;
-// }
+interface StateProps {
+    user?: User;
+}
 
-// type Props = IstateProps & RouteComponentProps<{ label: string }>;
-type Props = RouteComponentProps<{ label: string }>;
+type Props = StateProps & RouteComponentProps<{ label: string }>;
 
 class Label extends React.Component<Props, State> {
     public constructor(props: Props) {
@@ -51,12 +41,12 @@ class Label extends React.Component<Props, State> {
         // fetch images
         fetch(
             `/api/images?${queryString(params)}`,
-        ).then((res: Response): Promise<ImagesResult> => {
+        ).then((res: Response): Promise<ImagesResponse> => {
             if (res.ok) {
                 return res.json();
             }
             throw new Error(res.statusText);
-        }).then((results: ImagesResult): void => {
+        }).then((results: ImagesResponse): void => {
             this.setState({
                 cursor: results.cursor,
                 images: results.images,
@@ -67,21 +57,22 @@ class Label extends React.Component<Props, State> {
         // fetch index to get total numbers
         fetch(
             "/api/total",
-        ).then((res: Response): Promise<numbers> => {
+        ).then((res: Response): Promise<NumbersResponse> => {
             if (res.ok) {
                 return res.json();
             } else {
                 throw new Error(res.statusText);
             }
-        }).then((total: numbers): void => {
-            this.setState({ total: total[match.params.label as labels] });
+        }).then((total: NumbersResponse): void => {
+            this.setState({
+                total: total[match.params.label as labels],
+            });
         }).catch((err: Error): void => {
             window.console.error(err.message);
         });
     }
     public render(): JSX.Element {
-        // const { user, match } = this.props;
-        const { match } = this.props;
+        const { user, match } = this.props;
         const { total, images, cursor } = this.state;
         const totalLabel = total !== undefined
             ? <label>全 {total} 件</label>
@@ -103,8 +94,7 @@ class Label extends React.Component<Props, State> {
                     <img src={v.image_url} alt="piece img" className="img-thumbnail" />
                   </Link>
                 </td>
-                {/* <td className="align-middle">{user && user.role === userRole.editor && predict}</td> */}
-                <td className="align-middle">{predict}</td>
+                <td className="align-middle">{user && user.role === UserRole.editor && predict}</td>
                 <td className="align-middle">{DateTime.fromISO(v.created_at).toFormat(format)}</td>
                 <td className="align-middle">{DateTime.fromISO(v.updated_at).toFormat(format)}</td>
               </tr>
@@ -146,13 +136,13 @@ class Label extends React.Component<Props, State> {
         };
         fetch(
             `/api/images?${queryString(params)}`,
-        ).then((res: Response): Promise<ImagesResult> => {
+        ).then((res: Response): Promise<ImagesResponse> => {
             if (res.ok) {
                 return res.json();
             } else {
                 throw new Error(res.statusText);
             }
-        }).then((results: ImagesResult): void => {
+        }).then((results: ImagesResponse): void => {
             const { images } = this.state;
             this.setState({
                 cursor: results.cursor,
@@ -188,13 +178,12 @@ class Label extends React.Component<Props, State> {
     }
 }
 
-export default Label;
-// export default withRouter(
-//     connect(
-//         (state: Istate): IstateProps => {
-//             return {
-//                 user: state.commonReducer.user,
-//             };
-//         },
-//     )(Label),
-// );
+export default withRouter(
+    connect(
+        (state: AppState): StateProps => {
+            return {
+                user: state.userReducer.user,
+            };
+        },
+    )(Label),
+);
