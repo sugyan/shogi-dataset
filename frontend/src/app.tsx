@@ -7,6 +7,7 @@ import {
     UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem,
 } from "reactstrap";
 
+import Api from "./components/Api";
 import Index from "./components/Index";
 import Label from "./components/Label";
 import Login from "./components/Login";
@@ -51,6 +52,7 @@ class App extends React.Component<Props> {
             {this.navbar()}
             <div className="container py-md-3">
               <Route exact path="/" component={Index} />
+              <Route exact path="/api" component={Api} />
               <Route exact path="/login" component={Login} />
               <Route path="/label/:label" component={Label} />
             </div>
