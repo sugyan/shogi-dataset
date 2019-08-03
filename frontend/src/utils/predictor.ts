@@ -43,6 +43,9 @@ function calcResults(model: tf.GraphModel, labels: string[], data: ImageData[]):
 }
 
 export class Predictor {
+    private modelData?: ModelData
+    private static instance: Predictor;
+
     public static predict(inputs: ImageData[]): Promise<PredictResult[][]> {
         return Predictor.getInstance().predict(inputs);
     }
@@ -54,8 +57,6 @@ export class Predictor {
             return calcResults(data.model, data.labels, inputs);
         }
     }
-    private modelData?: ModelData
-    private static instance: Predictor;
     private static getInstance(): Predictor {
         if (!this.instance) {
             return Predictor.instance = new Predictor();

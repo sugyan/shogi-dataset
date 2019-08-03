@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import { Dispatch } from "redux";
 import {
-    Navbar, NavbarBrand, Nav, Collapse,
+    Navbar, NavbarBrand, Nav, NavItem, Collapse, Container,
     UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem,
 } from "reactstrap";
 
@@ -11,6 +11,7 @@ import Api from "./components/Api";
 import Index from "./components/Index";
 import Label from "./components/Label";
 import Login from "./components/Login";
+import Upload from "./components/Upload";
 import { UserRole, User } from "./redux/reducers";
 import { AppState } from "./redux/store";
 import { UserAction, setUser } from "./redux/actions";
@@ -44,23 +45,30 @@ class App extends React.Component<Props> {
             }
         }).catch((err: Error): void => {
             window.console.error(err.message);
+            setUser({ role: UserRole.anonymous });
         });
     }
     public render(): JSX.Element {
         return (
           <Router>
             {this.navbar()}
-            <div className="container py-md-3">
+            <Container className="py-md-3">
               <Route exact path="/" component={Index} />
               <Route exact path="/api" component={Api} />
               <Route exact path="/login" component={Login} />
               <Route path="/label/:label" component={Label} />
-            </div>
+              <Route exact path="/upload" component={Upload} />
+            </Container>
           </Router>
         );
     }
     private navbar(): JSX.Element {
         const { user } = this.props;
+        const editorMenu = (user && user.role === UserRole.editor) ? (
+          <NavItem>
+            <Link to="/upload" className="nav-link">Upload</Link>
+          </NavItem>
+        ) : null;
         const userMenu = (user && user.role !== UserRole.anonymous) ? (
           <Collapse isOpen={true}>
             <Nav navbar>
@@ -77,10 +85,15 @@ class App extends React.Component<Props> {
         ) : null;
         return (
           <Navbar expand="lg" light className="bg-light" >
-            <div className="container">
+            <Container>
               <NavbarBrand tag={Link} to="/">Shogi Dataset</NavbarBrand>
+              <Collapse navbar>
+                <Nav navbar>
+                  {editorMenu}
+                </Nav>
+              </Collapse>
               {userMenu}
-            </div>
+            </Container>
           </Navbar>
         );
     }

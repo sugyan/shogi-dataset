@@ -19,6 +19,21 @@ interface State {
 }
 
 class Api extends React.Component<{}, State> {
+    private apis: ApiMethod[] = [{
+        endpoint: "/api/total",
+        method: "GET",
+        name: "Get total",
+        params: [],
+    }, {
+        endpoint: "/api/images",
+        method: "GET",
+        name: "Get images",
+        params: [
+            { key: "cursor", required: false },
+            { key: "label", required: false },
+        ],
+    }];
+
     public constructor(props: {}) {
         super(props);
         this.state = {
@@ -65,20 +80,6 @@ class Api extends React.Component<{}, State> {
           </React.Fragment>
         );
     }
-    private apis: ApiMethod[] = [{
-        endpoint: "/api/total",
-        method: "GET",
-        name: "Get total",
-        params: [],
-    }, {
-        endpoint: "/api/images",
-        method: "GET",
-        name: "Get images",
-        params: [
-            { key: "cursor", required: false },
-            { key: "label", required: false },
-        ],
-    }];
     private renderApiDocuments(): JSX.Element {
         const { tokens, responses } = this.state;
         const header = `-H 'Authorization: Bearer ${tokens[0]}'`;
