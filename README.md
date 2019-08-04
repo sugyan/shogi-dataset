@@ -30,7 +30,7 @@ npm start
 ## Deployment
 
 ```
-export MODEL_URL_BASE=<MODEL URL> # CORS must be supported
+export REACT_APP_MODEL_URL=<MODEL URL> # CORS must be supported
 npm run build
 gcloud app deploy web
 ```
