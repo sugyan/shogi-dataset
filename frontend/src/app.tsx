@@ -1,63 +1,117 @@
-import * as React from "react";
+import React from "react";
 import { connect } from "react-redux";
-import { BrowserRouter, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import { Dispatch } from "redux";
+import {
+    Navbar, NavbarBrand, Nav, NavItem, Collapse, Container,
+    UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem,
+} from "reactstrap";
 
-import Api from "./apps/api";
-import Image from "./apps/image";
-import Index from "./apps/index";
-import Label from "./apps/label";
-import Login from "./apps/login";
-import Upload from "./apps/upload";
-import Navbar from "./components/navbar";
-import { CommonAction, setUserAction } from "./redux/actions/common";
-import { Istate } from "./redux/reducer";
-import { Iuser, userRole } from "./redux/reducers/common";
+import Api from "./components/Api";
+import Image from "./components/Image";
+import Index from "./components/Index";
+import Label from "./components/Label";
+import Login from "./components/Login";
+import Upload from "./components/Upload";
+import { UserRole, User } from "./redux/reducers";
+import { AppState } from "./redux/store";
+import { UserAction, setUser } from "./redux/actions";
 
-interface IdispatchProps {
-    setUser: (user: Iuser) => CommonAction;
+interface StateProps {
+    user?: User;
 }
 
-type Props = IdispatchProps;
+interface DispatchProps {
+    setUser: (user: User) => void;
+}
+
+type Props = StateProps & DispatchProps;
 
 class App extends React.Component<Props> {
-    public componentDidMount() {
+    public componentDidMount(): void {
         const { setUser } = this.props;
         fetch(
             "/api/user",
-        ).then((res: Response) => {
-            return res.json();
-        }).then((user: Iuser) => {
+        ).then((res: Response): Promise<User> => {
+            if (res.ok) {
+                return res.json();
+            } else {
+                throw new Error(res.statusText);
+            }
+        }).then((user: User): void => {
             if (user.name && user.role) {
                 setUser(user);
             } else {
-                setUser({ role: userRole.anonymous });
+                setUser({ role: UserRole.anonymous });
             }
+        }).catch((err: Error): void => {
+            window.console.error(err.message);
+            setUser({ role: UserRole.anonymous });
         });
     }
-    public render() {
+    public render(): JSX.Element {
         return (
-            <BrowserRouter>
-              <div>
-                <Navbar />
-                <div className="container py-md-3">
-                  <Route exact path="/" component={Index} />
-                  <Route exact path="/api" component={Api} />
-                  <Route exact path="/login" component={Login} />
-                  <Route path="/image" component={Image} />
-                  <Route path="/label/:label" component={Label} />
-                  <Route exact path="/upload" component={Upload} />
-                </div>
-              </div>
-            </BrowserRouter>
+          <Router>
+            {this.navbar()}
+            <Container className="py-md-3">
+              <Route exact path="/" component={Index} />
+              <Route exact path="/api" component={Api} />
+              <Route exact path="/login" component={Login} />
+              <Route path="/image" component={Image} />
+              <Route path="/label/:label" component={Label} />
+              <Route exact path="/upload" component={Upload} />
+            </Container>
+          </Router>
+        );
+    }
+    private navbar(): JSX.Element {
+        const { user } = this.props;
+        const editorMenu = (user && user.role === UserRole.editor) ? (
+          <NavItem>
+            <Link to="/upload" className="nav-link">Upload</Link>
+          </NavItem>
+        ) : null;
+        const userMenu = (user && user.role !== UserRole.anonymous) ? (
+          <Collapse isOpen={true}>
+            <Nav navbar>
+              <UncontrolledDropdown nav inNavbar>
+                <DropdownToggle nav caret>{user.name}</DropdownToggle>
+                <DropdownMenu right>
+                  <DropdownItem tag={Link} to="/api">API</DropdownItem>
+                  <DropdownItem divider />
+                  <DropdownItem tag="a" href="/logout">Logout</DropdownItem>
+                </DropdownMenu>
+              </UncontrolledDropdown>
+            </Nav>
+          </Collapse>
+        ) : null;
+        return (
+          <Navbar expand="lg" light className="bg-light" >
+            <Container>
+              <NavbarBrand tag={Link} to="/">Shogi Dataset</NavbarBrand>
+              <Collapse navbar>
+                <Nav navbar>
+                  {editorMenu}
+                </Nav>
+              </Collapse>
+              {userMenu}
+            </Container>
+          </Navbar>
         );
     }
 }
+
 export default connect(
-    (state: Istate) => state,
-    (dispatch: Dispatch): IdispatchProps => {
+    (state: AppState): StateProps => {
         return {
-            setUser: (user: Iuser): CommonAction => dispatch(setUserAction(user)),
+            user: state.userReducer.user,
         };
     },
+    (dispatch: Dispatch<UserAction>): DispatchProps => {
+        return {
+            setUser: (user: User): void => {
+                dispatch(setUser(user));
+            },
+        };
+    }
 )(App);

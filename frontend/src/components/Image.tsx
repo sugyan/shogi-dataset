@@ -2,19 +2,19 @@ import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
 import { Route } from "react-router-dom";
 
-import ImageEdit from "./image/edit";
-import ImageIndex from "./image/index";
+import ImageEdit from "./image/Edit";
+import ImageIndex from "./image/Index";
 
 type Props = RouteComponentProps<{}>;
 
 class Image extends React.Component<Props> {
-    public render() {
+    public render(): JSX.Element {
         const { match } = this.props;
         return (
-            <React.Fragment>
-              <Route exact path={`${match.url}/:id`} component={ImageIndex} />
-              <Route exact path={`${match.url}/:id/edit`} component={ImageEdit} />
-            </React.Fragment>
+          <React.Fragment>
+            <Route exact path={`${match.url}/:id`} component={ImageIndex} />
+            <Route exact path={`${match.url}/:id/edit`} component={ImageEdit} />
+          </React.Fragment>
         );
     }
 }

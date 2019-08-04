@@ -1,43 +1,52 @@
 {
-  "name": "app",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --mode=production",
-    "start": "webpack-dev-server --mode=development"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
-    "bootstrap": "^4.3.1",
-    "open-iconic": "^1.1.1"
-  },
-  "devDependencies": {
     "@tensorflow/tfjs": "^1.2.5",
+    "@types/jest": "24.0.15",
     "@types/luxon": "^1.15.2",
-    "@types/node": "^12.6.8",
-    "@types/react": "^16.8.23",
-    "@types/react-dom": "^16.8.5",
+    "@types/node": "12.6.8",
+    "@types/react": "16.8.23",
+    "@types/react-dom": "16.8.5",
     "@types/react-redux": "^7.1.1",
     "@types/react-router-dom": "^4.3.4",
-    "@types/reactstrap": "^6.4.4",
-    "@types/redux": "^3.6.31",
+    "@types/reactstrap": "^8.0.1",
+    "@types/redux": "^3.6.0",
+    "bootstrap": "^4.3.1",
     "glfx": "0.0.4",
+    "http-proxy-middleware": "^0.19.1",
     "luxon": "^1.17.2",
+    "open-iconic": "^1.1.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-redux": "^7.1.0",
     "react-router-dom": "^5.0.1",
-    "reactstrap": "^6.5.0",
+    "react-scripts": "3.0.1",
+    "reactstrap": "^8.0.1",
     "redux": "^4.0.4",
-    "ts-loader": "^4.5.0",
-    "typescript": "^3.5.3",
-    "webpack": "^4.37.0",
-    "webpack-cli": "^3.3.6",
-    "webpack-dev-server": "^3.7.2",
-    "worker-loader": "^2.0.0"
-  }
+    "typescript": "3.5.3"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8080"
 }
