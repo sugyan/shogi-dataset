@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { CursorProperty } from "csstype";
 import React from "react";
 import { connect } from "react-redux";
@@ -133,10 +134,7 @@ class Canvas extends React.Component<Props, State> {
     }
     private calcMousePoint(ev: MouseEvent): Point {
         const { size } = this.props;
-        const rect: ClientRect | null = this.canvas.current && this.canvas.current.getBoundingClientRect();
-        if (!rect) {
-            return { x: 0, y: 0 };
-        }
+        const rect: ClientRect = this.canvas.current!.getBoundingClientRect();
         const scale: number = Math.max(size / rect.width, size / rect.height);
         return {
             x: (ev.clientX - rect.left) * scale,

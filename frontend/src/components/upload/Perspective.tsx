@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import * as fx from "glfx";
 import React from "react";
 import { connect } from "react-redux";
@@ -35,10 +36,7 @@ class Perspective extends React.Component<Props> {
     }
     public componentDidMount(): void {
         const { size } = this.props;
-        const canvas: HTMLCanvasElement | null = this.container.current;
-        if (!canvas) {
-            return;
-        }
+        const canvas: HTMLCanvasElement = this.container.current!;
         canvas.height = canvas.width = size;
         try {
             this.canvas = fx.canvas();
@@ -50,8 +48,8 @@ class Perspective extends React.Component<Props> {
     }
     public componentWillReceiveProps(props: Props): void {
         const { image, points } = this.props;
-        if (props.image !== image && this.canvas) {
-            this.texture = this.canvas.texture(props.image);
+        if (props.image !== image) {
+            this.texture = this.canvas!.texture(props.image);
             this.updateImageData(props.points);
         }
         if (props.points !== points && this.texture) {
@@ -60,82 +58,76 @@ class Perspective extends React.Component<Props> {
     }
     public render(): JSX.Element {
         const { size, divide, imageData } = this.props;
-        // let rotateButton: React.ReactNode;
-        if (imageData && this.container.current) {
-            const ctx: CanvasRenderingContext2D | null = this.container.current.getContext("2d");
-            if (ctx) {
-                ctx.putImageData(imageData, 0, 0);
-                ctx.strokeStyle = "lightgray";
-                ctx.setLineDash([4, 4]);
-                ctx.beginPath();
-                for (let i = 1; i < divide.row; i++) {
-                    ctx.moveTo(0, size / divide.row * i);
-                    ctx.lineTo(size, size / divide.row * i);
-                    ctx.stroke();
-                }
-                for (let i = 0; i < divide.col; i++) {
-                    ctx.moveTo(size / divide.col * i, 0);
-                    ctx.lineTo(size / divide.col * i, size);
-                    ctx.stroke();
-                }
-                // rotateButton = (
-                //     <div className="text-right">
-                //       <button className="btn btn-light" onClick={this.onClickRotateButton.bind(this)}>
-                //         <svg viewBox="0 0 8 8" style={{ height: 16, width: 16 }}>
-                //           <use xlinkHref="/static/svg/open-iconic.min.svg#loop-circular" style={{ fill: "gray" }} />
-                //         </svg>
-                //       </button>
-                //     </div>
-                // );
+        if (imageData) {
+            const ctx: CanvasRenderingContext2D = this.container.current!.getContext("2d")!;
+            ctx.putImageData(imageData, 0, 0);
+            ctx.strokeStyle = "lightgray";
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            for (let i = 1; i < divide.row; i++) {
+                ctx.moveTo(0, size / divide.row * i);
+                ctx.lineTo(size, size / divide.row * i);
+                ctx.stroke();
+            }
+            for (let i = 0; i < divide.col; i++) {
+                ctx.moveTo(size / divide.col * i, 0);
+                ctx.lineTo(size / divide.col * i, size);
+                ctx.stroke();
             }
         }
+        const rotateButton = imageData && (
+          <div className="text-right">
+            <button className="btn btn-light" onClick={this.onClickRotateButton.bind(this)}>
+              <svg viewBox="0 0 8 8" style={{ height: 16, width: 16 }}>
+                <use xlinkHref="/static/svg/open-iconic.min.svg#loop-circular" style={{ fill: "gray" }} />
+              </svg>
+            </button>
+          </div>
+        );
         return (
           <div>
             <h2>Cropped</h2>
             <canvas ref={this.container} style={{ width: "100%", border: "1px solid" }} />
-            {/* {rotateButton} */}
+            {rotateButton}
           </div>
         );
     }
     private updateImageData(points: number[]): void {
         const { size, updateImageData } = this.props;
-        if (!this.canvas || !this.texture) {
-            return;
-        }
-        this.canvas.draw(this.texture, size, size)
+        this.canvas!.draw(this.texture!, size, size)
             .perspective(
                 points.map((v): number => v * size),
                 [0, 0, 1, 0, 1, 1, 0, 1].map((v): number => v * size))
             .update();
-        const data: Uint8Array = this.canvas.getPixelArray();
+        const data: Uint8Array = this.canvas!.getPixelArray();
         const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
         updateImageData(imageData);
     }
-//     private onClickRotateButton() {
-//         const { imageData, updateImageData } = this.props;
-//         if (!imageData) {
-//             return;
-//         }
-//         const imgCanvas: HTMLCanvasElement = document.createElement("canvas");
-//         imgCanvas.height = imageData.height;
-//         imgCanvas.width  = imageData.width;
-//         imgCanvas.getContext("2d")!.putImageData(imageData, 0, 0);
-//         const img: HTMLImageElement = new Image();
-//         img.onload = () => {
-//             const drawCanvas: HTMLCanvasElement = document.createElement("canvas");
-//             const ctx: CanvasRenderingContext2D = drawCanvas.getContext("2d")!;
-//             drawCanvas.height = imageData.height;
-//             drawCanvas.width  = imageData.width;
-//             ctx.save();
-//             ctx.translate(+ 0.5 * imageData.height, + 0.5 * imageData.height);
-//             ctx.rotate(- Math.PI * 0.5);
-//             ctx.translate(- 0.5 * imageData.height, - 0.5 * imageData.height);
-//             ctx.drawImage(img, 0, 0);
-//             ctx.restore();
-//             updateImageData(ctx.getImageData(0, 0, imageData.width, imageData.height));
-//         };
-//         img.src = imgCanvas.toDataURL("image/png");
-//     }
+    private onClickRotateButton(): void {
+        const { imageData, updateImageData } = this.props;
+        if (!imageData) {
+            return;
+        }
+        const imgCanvas: HTMLCanvasElement = document.createElement("canvas");
+        imgCanvas.height = imageData.height;
+        imgCanvas.width  = imageData.width;
+        imgCanvas.getContext("2d")!.putImageData(imageData, 0, 0);
+        const img: HTMLImageElement = new Image();
+        img.onload = (): void => {
+            const drawCanvas: HTMLCanvasElement = document.createElement("canvas");
+            const ctx: CanvasRenderingContext2D = drawCanvas.getContext("2d")!;
+            drawCanvas.height = imageData.height;
+            drawCanvas.width  = imageData.width;
+            ctx.save();
+            ctx.translate(+ 0.5 * imageData.height, + 0.5 * imageData.height);
+            ctx.rotate(- Math.PI * 0.5);
+            ctx.translate(- 0.5 * imageData.height, - 0.5 * imageData.height);
+            ctx.drawImage(img, 0, 0);
+            ctx.restore();
+            updateImageData(ctx.getImageData(0, 0, imageData.width, imageData.height));
+        };
+        img.src = imgCanvas.toDataURL("image/png");
+    }
 }
 
 export default connect(

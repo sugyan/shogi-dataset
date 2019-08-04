@@ -5,6 +5,7 @@ import { Row, Col } from "reactstrap";
 
 import Canvas from "./upload/Canvas";
 import Perspective from "./upload/Perspective";
+import Divide from "./upload/Divide";
 import { AppState } from "../redux/store";
 import { UploadAction, loadImage, updatePoints } from "../redux/actions";
 import { User, UserRole } from "../redux/reducers";
@@ -46,6 +47,8 @@ class Upload extends React.Component<Props> {
             </Col>
             <Col xs="4">
               <Perspective size={96 * 9} />
+              <hr />
+              <Divide size={96} />
             </Col>
           </Row>
         );
