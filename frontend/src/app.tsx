@@ -8,6 +8,7 @@ import {
 } from "reactstrap";
 
 import Api from "./components/Api";
+import Image from "./components/Image";
 import Index from "./components/Index";
 import Label from "./components/Label";
 import Login from "./components/Login";
@@ -56,6 +57,7 @@ class App extends React.Component<Props> {
               <Route exact path="/" component={Index} />
               <Route exact path="/api" component={Api} />
               <Route exact path="/login" component={Login} />
+              <Route path="/image" component={Image} />
               <Route path="/label/:label" component={Label} />
               <Route exact path="/upload" component={Upload} />
             </Container>

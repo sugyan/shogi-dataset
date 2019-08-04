@@ -48,8 +48,9 @@ class Api extends React.Component<{}, State> {
         ).then((res: Response): Promise<string[]> => {
             if (res.ok) {
                 return res.json();
+            } else {
+                throw new Error(res.statusText);
             }
-            throw new Error(res.statusText);
         }).then((tokens: string[]): void => {
             this.updateTokens(tokens);
         }).catch((err: Error): void => {
@@ -132,8 +133,9 @@ class Api extends React.Component<{}, State> {
         ).then((res: Response): Promise<string[]> => {
             if (res.ok) {
                 return res.json();
+            } else {
+                throw new Error(res.statusText);
             }
-            throw new Error(res.statusText);
         }).then((tokens: string[]): void => {
             this.updateTokens(tokens);
         }).catch((err: Error): void => {
@@ -158,8 +160,9 @@ class Api extends React.Component<{}, State> {
                 ).then((res: Response): Promise<JSON> => {
                     if (res.ok) {
                         return res.json();
+                    } else {
+                        throw new Error(res.statusText);
                     }
-                    throw new Error(res.statusText);
                 }).then((json: JSON): void => {
                     const { responses } = this.state;
                     responses[index] = JSON.stringify(json, null, "  ");

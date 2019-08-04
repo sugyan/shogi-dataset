@@ -44,8 +44,9 @@ class Label extends React.Component<Props, State> {
         ).then((res: Response): Promise<ImagesResponse> => {
             if (res.ok) {
                 return res.json();
+            } else {
+                throw new Error(res.statusText);
             }
-            throw new Error(res.statusText);
         }).then((results: ImagesResponse): void => {
             this.setState({
                 cursor: results.cursor,

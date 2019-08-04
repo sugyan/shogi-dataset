@@ -8,6 +8,7 @@ export interface ImageResponse {
     id: string;
     image_url: string;
     label: string;
+    user?: string;
     created_at: string;
     updated_at: string;
 }
