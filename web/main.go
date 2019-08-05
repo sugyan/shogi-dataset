@@ -1,20 +1,24 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/sugyan/shogi-dataset/web/app"
-	"google.golang.org/appengine"
 )
 
 func main() {
 	// setup app
-	projectID := appengine.AppID(context.Background())
-	isDev := appengine.IsDevAppServer()
+	projectID := os.Getenv("PROJECT_ID")
+	if projectID == "" {
+		// TODO
+	}
+	isDev := false
+	if os.Getenv("DEBUG") != "" {
+		isDev = true
+	}
 	bucketName := fmt.Sprintf("%s.appspot.com", projectID)
 	redirectURL := fmt.Sprintf("https://%s.appspot.com/oauth2/callback", projectID)
 	if isDev {
@@ -40,6 +44,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	log.Printf("Listening on port %s", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), app.Handler()); err != nil {
 		log.Fatal(err)
 	}
