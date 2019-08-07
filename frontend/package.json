@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@tensorflow/tfjs": "^1.2.5",
+    "@tensorflow/tfjs": "^1.2.7",
     "@types/jest": "24.0.15",
     "@types/luxon": "^1.15.2",
     "@types/node": "12.6.8",
