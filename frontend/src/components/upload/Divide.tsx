@@ -222,11 +222,11 @@ class Divide extends React.Component<Props, State> {
         const { images, selectedLabel } = this.state;
         fetch(
             "/api/upload", {
+                method: "POST",
                 body: JSON.stringify({
                     image: images[this.targetImageIndex!].src,
                     label: selectedLabel,
                 }),
-                method: "POST",
             },
         ).then((res: Response): void => {
             if (res.ok) {

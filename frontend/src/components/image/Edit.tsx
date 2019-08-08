@@ -105,4 +105,5 @@ class ImageEdit extends React.Component<Props, State> {
         });
     }
 }
+
 export default withRouter(ImageEdit);

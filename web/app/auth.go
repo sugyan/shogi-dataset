@@ -6,13 +6,13 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"strings"
 
 	"cloud.google.com/go/datastore"
 	"github.com/sugyan/shogi-dataset/web/entity"
+	"golang.org/x/oauth2"
 )
 
 type contextKey string
@@ -120,14 +120,22 @@ func (app *App) oauth2GithubHandler(w http.ResponseWriter, r *http.Request) *app
 	if err := stateSession.Save(r, w); err != nil {
 		return &appError{err, "failed to save session"}
 	}
-	http.Redirect(w, r, app.oauth2.AuthCodeURL(state), http.StatusFound)
+	w.Write([]byte(app.oauth2.AuthCodeURL(state)))
 	return nil
 }
 
 func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) *appError {
-	ctx := r.Context()
+	body := &struct {
+		Code  string `json:"code"`
+		State string `json:"state"`
+	}{}
+	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
+		return &appError{err, "failed to decode json"}
+	}
+	defer r.Body.Close()
+
 	// validate state
-	stateSession, err := app.session.Get(r, r.FormValue("state"))
+	stateSession, err := app.session.Get(r, body.State)
 	if err != nil {
 		return &appError{err, "failed to get session"}
 	}
@@ -136,16 +144,17 @@ func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) *a
 		return errBadRequest
 	}
 	// get token and profile
-	token, err := app.oauth2.Exchange(ctx, r.FormValue("code"))
+	token, err := app.oauth2.Exchange(r.Context(), body.Code)
 	if err != nil {
 		return &appError{err, "failed to exchange to token"}
 	}
-	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
+	client := oauth2.NewClient(r.Context(), oauth2.StaticTokenSource(token))
 	res, err := client.Get(githubUserAPIURL)
 	if err != nil {
 		return &appError{err, "failed to get user info"}
 	}
 	defer res.Body.Close()
+
 	userInfo := struct {
 		ID    int64  `json:"id"`
 		Login string `json:"login"`
@@ -153,8 +162,9 @@ func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) *a
 	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
 		return &appError{err, "failed to encode json"}
 	}
+
 	// save user info to datastore
-	u, err := app.entity.SaveUser(ctx, userInfo.ID, userInfo.Login)
+	u, err := app.entity.SaveUser(r.Context(), userInfo.ID, userInfo.Login)
 	if err != nil {
 		return &appError{err, "failed to save user info"}
 	}
@@ -170,6 +180,6 @@ func (app *App) oauth2CallbackHandler(w http.ResponseWriter, r *http.Request) *a
 	if err := defaultSession.Save(r, w); err != nil {
 		return &appError{err, "failed to save session"}
 	}
-	http.Redirect(w, r, "/", http.StatusFound)
+
 	return nil
 }

@@ -10,20 +10,19 @@ import (
 )
 
 func main() {
+	isDev := false
 	// setup app
-	projectID := os.Getenv("PROJECT_ID")
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
 		// TODO
-	}
-	isDev := false
-	if os.Getenv("DEBUG") != "" {
+	} else {
 		isDev = true
 	}
 	bucketName := fmt.Sprintf("%s.appspot.com", projectID)
 	redirectURL := fmt.Sprintf("https://%s.appspot.com/oauth2/callback", projectID)
 	if isDev {
 		bucketName = "staging." + bucketName
-		redirectURL = "http://localhost:8080/oauth2/callback"
+		redirectURL = "http://localhost:3000/auth/callback"
 	}
 	app, err := app.NewApp(&app.Config{
 		IsDev:              isDev,

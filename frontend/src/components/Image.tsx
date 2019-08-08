@@ -18,4 +18,5 @@ class Image extends React.Component<Props> {
         );
     }
 }
+
 export default withRouter(Image);
