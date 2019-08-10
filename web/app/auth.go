@@ -51,7 +51,6 @@ func (app *App) logoutHandler(w http.ResponseWriter, r *http.Request) *appError 
 	if err := session.Save(r, w); err != nil {
 		return &appError{err, "failed to save session"}
 	}
-	http.Redirect(w, r, "/", http.StatusFound)
 	return nil
 }
 

@@ -106,8 +106,14 @@ class App extends React.Component<Props> {
             "/api/auth/logout", {
                 method: "POST",
             },
-        ).then((res: Response) => {
-            // TODO
+        ).then((res: Response): void => {
+            if (res.ok) {
+                window.location.replace("/");
+            } else {
+                throw new Error(res.statusText);
+            }
+        }).catch((err: Error): void => {
+            window.console.error(err.message);
         });
     }
 }
