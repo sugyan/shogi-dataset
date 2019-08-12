@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import * as fx from "glfx";
-import React from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 
@@ -25,86 +25,13 @@ interface DispatchProps {
 
 type Props = ComponentProps & StateProps & DispatchProps;
 
-class Perspective extends React.Component<Props> {
-    private container: React.RefObject<HTMLCanvasElement>;
-    private canvas?: fx.Canvas;
-    private texture?: fx.Texture;
-
-    public constructor(props: Props) {
-        super(props);
-        this.container = React.createRef<HTMLCanvasElement>();
-    }
-    public componentDidMount(): void {
-        const { size } = this.props;
-        const canvas: HTMLCanvasElement = this.container.current!;
-        canvas.height = canvas.width = size;
-        try {
-            this.canvas = fx.canvas();
-            this.canvas.width = this.canvas.height = size;
-        } catch (e) {
-            window.console.error(e);
-            return;
-        }
-    }
-    public componentWillReceiveProps(props: Props): void {
-        const { image, points } = this.props;
-        if (props.image !== image) {
-            this.texture = this.canvas!.texture(props.image);
-            this.updateImageData(props.points);
-        }
-        if (props.points !== points && this.texture) {
-            this.updateImageData(props.points);
-        }
-    }
-    public render(): JSX.Element {
-        const { size, divide, imageData } = this.props;
-        if (imageData) {
-            const ctx: CanvasRenderingContext2D = this.container.current!.getContext("2d")!;
-            ctx.putImageData(imageData, 0, 0);
-            ctx.strokeStyle = "lightgray";
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            for (let i = 1; i < divide.row; i++) {
-                ctx.moveTo(0, size / divide.row * i);
-                ctx.lineTo(size, size / divide.row * i);
-                ctx.stroke();
-            }
-            for (let i = 0; i < divide.col; i++) {
-                ctx.moveTo(size / divide.col * i, 0);
-                ctx.lineTo(size / divide.col * i, size);
-                ctx.stroke();
-            }
-        }
-        const rotateButton = imageData && (
-          <div className="text-right">
-            <button className="btn btn-light" onClick={this.onClickRotateButton.bind(this)}>
-              <svg viewBox="0 0 8 8" style={{ height: 16, width: 16 }}>
-                <use xlinkHref="/static/svg/open-iconic.min.svg#loop-circular" style={{ fill: "gray" }} />
-              </svg>
-            </button>
-          </div>
-        );
-        return (
-          <div>
-            <h2>Cropped</h2>
-            <canvas ref={this.container} style={{ width: "100%", border: "1px solid" }} />
-            {rotateButton}
-          </div>
-        );
-    }
-    private updateImageData(points: number[]): void {
-        const { size, updateImageData } = this.props;
-        this.canvas!.draw(this.texture!, size, size)
-            .perspective(
-                points.map((v): number => v * size),
-                [0, 0, 1, 0, 1, 1, 0, 1].map((v): number => v * size))
-            .update();
-        const data: Uint8Array = this.canvas!.getPixelArray();
-        const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
-        updateImageData(imageData);
-    }
-    private onClickRotateButton(): void {
-        const { imageData, updateImageData } = this.props;
+const Perspective: React.FC<Props> = (props: Props): JSX.Element => {
+    const { size, divide, imageData } = props;
+    const container = useRef<HTMLCanvasElement>(null);
+    const [canvas, updateCanvas] = useState<fx.Canvas>();
+    const [texture, updateTexture] = useState<fx.Texture>();
+    const onClickRotateButton = (): void => {
+        const { imageData, updateImageData } = props;
         if (!imageData) {
             return;
         }
@@ -127,8 +54,71 @@ class Perspective extends React.Component<Props> {
             updateImageData(ctx.getImageData(0, 0, imageData.width, imageData.height));
         };
         img.src = imgCanvas.toDataURL("image/png");
+    };
+    useMemo((): void => {
+        const size = props.size;
+        const points = props.points;
+        const updateImageData = props.updateImageData;
+        if (canvas && texture) {
+            canvas.draw(texture, size, size)
+                .perspective(
+                    points.map((v): number => v * size),
+                    [0, 0, 1, 0, 1, 1, 0, 1].map((v): number => v * size))
+                .update();
+            const data: Uint8Array = canvas.getPixelArray();
+            const imageData = new ImageData(new Uint8ClampedArray(data), size, size);
+            updateImageData(imageData);
+        }
+    }, [props.size, props.points, props.updateImageData, canvas, texture]);
+    useEffect((): void => {
+        const canvas = container.current;
+        if (canvas) {
+            canvas.height = canvas.width = size;
+            const fxcanvas = fx.canvas();
+            fxcanvas.width = fxcanvas.height = size;
+            updateCanvas(fxcanvas);
+        }
+    }, [size]);
+    useEffect((): void => {
+        if (canvas && props.image) {
+            updateTexture(canvas.texture(props.image));
+        }
+    }, [canvas, props.image]);
+
+    if (imageData) {
+        const ctx: CanvasRenderingContext2D = container.current!.getContext("2d")!;
+        ctx.putImageData(imageData, 0, 0);
+        ctx.strokeStyle = "lightgray";
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        for (let i = 1; i < divide.row; i++) {
+            ctx.moveTo(0, size / divide.row * i);
+            ctx.lineTo(size, size / divide.row * i);
+            ctx.stroke();
+        }
+        for (let i = 0; i < divide.col; i++) {
+            ctx.moveTo(size / divide.col * i, 0);
+            ctx.lineTo(size / divide.col * i, size);
+            ctx.stroke();
+        }
     }
-}
+    const rotateButton = imageData && (
+      <div className="text-right">
+        <button className="btn btn-light" onClick={onClickRotateButton}>
+          <svg viewBox="0 0 8 8" style={{ height: 16, width: 16 }}>
+            <use xlinkHref="/static/svg/open-iconic.min.svg#loop-circular" style={{ fill: "gray" }} />
+          </svg>
+        </button>
+      </div>
+    );
+    return (
+      <div>
+        <h2>Cropped</h2>
+        <canvas ref={container} style={{ width: "100%", border: "1px solid" }} />
+        {rotateButton}
+      </div>
+    );
+};
 
 export default connect(
     (state: AppState): StateProps => {

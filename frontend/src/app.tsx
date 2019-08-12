@@ -4,10 +4,11 @@ import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import { Dispatch } from "redux";
 import {
     Navbar, NavbarBrand, Nav, NavItem, Collapse, Container,
-    UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem,
+    UncontrolledDropdown, DropdownToggle, DropdownMenu, DropdownItem, Button,
 } from "reactstrap";
 
 import Api from "./components/Api";
+import AuthCallback from "./components/AuthCallback";
 import Image from "./components/Image";
 import Index from "./components/Index";
 import Label from "./components/Label";
@@ -57,6 +58,7 @@ class App extends React.Component<Props> {
               <Route exact path="/" component={Index} />
               <Route exact path="/api" component={Api} />
               <Route exact path="/login" component={Login} />
+              <Route exact path="/auth/callback" component={AuthCallback} />
               <Route path="/image" component={Image} />
               <Route path="/label/:label" component={Label} />
               <Route exact path="/upload" component={Upload} />
@@ -79,7 +81,7 @@ class App extends React.Component<Props> {
                 <DropdownMenu right>
                   <DropdownItem tag={Link} to="/api">API</DropdownItem>
                   <DropdownItem divider />
-                  <DropdownItem tag="a" href="/logout">Logout</DropdownItem>
+                  <DropdownItem tag={Button} onClick={this.onClickLogout.bind(this)}>Logout</DropdownItem>
                 </DropdownMenu>
               </UncontrolledDropdown>
             </Nav>
@@ -98,6 +100,21 @@ class App extends React.Component<Props> {
             </Container>
           </Navbar>
         );
+    }
+    private onClickLogout(): void {
+        fetch(
+            "/api/auth/logout", {
+                method: "POST",
+            },
+        ).then((res: Response): void => {
+            if (res.ok) {
+                window.location.replace("/");
+            } else {
+                throw new Error(res.statusText);
+            }
+        }).catch((err: Error): void => {
+            window.console.error(err.message);
+        });
     }
 }
 

@@ -37,7 +37,7 @@ interface UpdatePointsAction extends Action {
 
 interface UpdateImageDataAction extends Action {
     type: ActionTypes.UPDATE_IMAGE_DATA;
-    imageData: ImageData;
+    imageData?: ImageData;
 }
 
 interface ChangeDivideAction extends Action {
@@ -66,7 +66,7 @@ export const updatePoints = (points: number[]): UpdatePointsAction => {
     };
 };
 
-export const updateImageData = (imageData: ImageData): UpdateImageDataAction => {
+export const updateImageData = (imageData?: ImageData): UpdateImageDataAction => {
     return {
         type: ActionTypes.UPDATE_IMAGE_DATA,
         imageData,

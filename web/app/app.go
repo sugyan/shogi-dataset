@@ -104,11 +104,7 @@ func NewApp(config *Config) (*App, error) {
 // Handler method
 func (app *App) Handler() http.Handler {
 	router := mux.NewRouter()
-	router.Handle("/logout", appHandler(app.logoutHandler))
-	// router for oauth2 endpoints
-	authRouter := router.PathPrefix("/oauth2").Subrouter()
-	authRouter.Handle("/github", appHandler(app.oauth2GithubHandler))
-	authRouter.Handle("/callback", appHandler(app.oauth2CallbackHandler))
+
 	// router for API endpoints
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(app.authMiddleware)
@@ -126,14 +122,21 @@ func (app *App) Handler() http.Handler {
 		Methods("POST")
 	apiRouter.Handle("/token", appHandler(app.apiTokenHandler)).
 		Methods("GET", "POST")
-	apiRouter.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
-	})
+
+	// router for oauth2 endpoints
+	authRouter := apiRouter.PathPrefix("/auth").Subrouter()
+	authRouter.Handle("/github", appHandler(app.oauth2GithubHandler))
+	authRouter.Handle("/callback", appHandler(app.oauth2CallbackHandler)).
+		Methods("POST")
+	authRouter.Handle("/logout", appHandler(app.logoutHandler)).
+		Methods("POST")
 	// router for admin endpoints
 	adminRouter := router.PathPrefix("/admin").Subrouter()
 	adminRouter.Handle("/count", appHandler(app.countHandler))
+
 	// wildcard endpoints
 	router.PathPrefix("/").Handler(appHandler(app.appHandler))
+
 	return router
 }
 
