@@ -20,6 +20,7 @@ gcloud beta emulators datastore start
 
 ```sh
 $(gcloud beta emulators datastore env-init)
+export MODE=development
 export GOOGLE_CLOUD_PROJECT=<Project ID>
 # set other env variables
 go run web/main.go

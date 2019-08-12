@@ -66,7 +66,7 @@ export class Predictor {
     private constructor() {
     }
     private async loadModel(): Promise<ModelData> {
-        const MODEL_URL = process.env.MODEL_URL || "/data/model.json";
+        const MODEL_URL = process.env.REACT_APP_MODEL_URL || "/data/model.json";
         const model: tf.GraphModel = await tf.loadGraphModel(MODEL_URL);
         const labelsTensor: tf.Tensor = tf.tidy((): tf.Tensor => {
             return model.execute(tf.tensor([], [0, 96, 96, 3]), "labels") as tf.Tensor;

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -10,16 +11,18 @@ import (
 )
 
 func main() {
-	isDev := false
+	isDev := os.Getenv("MODE") == "development"
 	// setup app
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
-		// TODO
-	} else {
-		isDev = true
+		var err error
+		projectID, err = getProjectID()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	bucketName := fmt.Sprintf("%s.appspot.com", projectID)
-	redirectURL := fmt.Sprintf("https://%s.appspot.com/oauth2/callback", projectID)
+	redirectURL := fmt.Sprintf("https://%s.appspot.com/auth/callback", projectID)
 	if isDev {
 		bucketName = "staging." + bucketName
 		redirectURL = "http://localhost:3000/auth/callback"
@@ -47,4 +50,18 @@ func main() {
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), app.Handler()); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getProjectID() (string, error) {
+	resp, err := http.Get("http://metadata/computeMetadata/v1/project/project-id")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
