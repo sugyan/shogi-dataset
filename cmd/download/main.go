@@ -122,16 +122,21 @@ func writeLabels() error {
 }
 
 func write(resultCh <-chan *result) error {
-	t, err := os.Create(filepath.Join("data", "train.tfrecord"))
+	training, err := os.Create(filepath.Join("data", "training.tfrecord"))
 	if err != nil {
 		return err
 	}
-	defer t.Close()
-	v, err := os.Create(filepath.Join("data", "valid.tfrecord"))
+	defer training.Close()
+	validation, err := os.Create(filepath.Join("data", "validation.tfrecord"))
 	if err != nil {
 		return err
 	}
-	defer v.Close()
+	defer validation.Close()
+	testing, err := os.Create(filepath.Join("data", "testing.tfrecord"))
+	if err != nil {
+		return err
+	}
+	defer testing.Close()
 loop:
 	for {
 		select {
@@ -142,14 +147,20 @@ loop:
 			if result.err != nil {
 				return result.err
 			}
-			if result.uid%100 < 90 {
-				log.Printf("write to train.tfrecord (%v bytes)", len(result.data))
-				if _, err := t.Write(result.data); err != nil {
+			value := result.uid % 100
+			if value < 80 {
+				log.Printf("write to training.tfrecord (%v bytes)", len(result.data))
+				if _, err := training.Write(result.data); err != nil {
+					return err
+				}
+			} else if value < 90 {
+				log.Printf("write to validation.tfrecord (%v bytes)", len(result.data))
+				if _, err := validation.Write(result.data); err != nil {
 					return err
 				}
 			} else {
-				log.Printf("write to valid.tfrecord (%v bytes)", len(result.data))
-				if _, err := v.Write(result.data); err != nil {
+				log.Printf("write to testing.tfrecord (%v bytes)", len(result.data))
+				if _, err := testing.Write(result.data); err != nil {
 					return err
 				}
 			}
