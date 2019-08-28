@@ -192,6 +192,9 @@ func getImages() (<-chan *entity.ImageResult, error) {
 				log.Fatal(err)
 			}
 			defer resp.Body.Close()
+			if resp.StatusCode/100 != 2 {
+				log.Fatal(resp.Status)
+			}
 
 			results := &entity.ImagesResult{}
 			if err := json.NewDecoder(resp.Body).Decode(results); err != nil {
