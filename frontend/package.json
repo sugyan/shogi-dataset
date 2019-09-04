@@ -1,6 +1,7 @@
 {
   "name": "frontend",
   "version": "0.1.0",
+  "homepage": "https://shogi-dataset.appspot.com",
   "private": true,
   "dependencies": {
     "@tensorflow/tfjs": "^1.2.8",
