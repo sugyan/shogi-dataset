@@ -17,14 +17,13 @@ interface Scored {
 
 function calcResults(model: tf.GraphModel, labels: string[], data: ImageData[]): PredictResult[][] {
     // calcurate softmax
-    const softmax: tf.Tensor = tf.tidy((): tf.Tensor => {
+    const predict: tf.Tensor = tf.tidy((): tf.Tensor => {
         const tensors: tf.Tensor[] = data.map((d: ImageData): tf.Tensor => tf.browser.fromPixels(d));
         const inputs: tf.Tensor = tf.stack(tensors).toFloat().div(tf.scalar(255.0));
-        const logits: tf.Tensor = model.execute(inputs, "MobilenetV2/Logits/output") as tf.Tensor;
-        return tf.softmax(logits);
+        return model.predict(inputs) as tf.Tensor;
     });
-    const resultData: Float32Array = softmax.dataSync() as Float32Array;
-    softmax.dispose();
+    const resultData: Float32Array = predict.dataSync() as Float32Array;
+    predict.dispose();
 
     // sort and get top-k
     const results = [];
@@ -66,13 +65,17 @@ export class Predictor {
     private constructor() {
     }
     private async loadModel(): Promise<ModelData> {
-        const MODEL_URL = process.env.REACT_APP_MODEL_URL || "/data/model.json";
+        const MODEL_URL_BASE = process.env.REACT_APP_MODEL_URL_BASE || "/data";
+        const MODEL_URL = `${MODEL_URL_BASE}/model.json`;
+        const LABELS_URL = `${MODEL_URL_BASE}/labels.txt`;
+        const labels = (await fetch(LABELS_URL).then((res: Response): Promise<string> => {
+            if (res.ok) {
+                return res.text();
+            } else {
+                throw new Error(res.statusText);
+            }
+        })).trim().split("\n");
         const model: tf.GraphModel = await tf.loadGraphModel(MODEL_URL);
-        const labelsTensor: tf.Tensor = tf.tidy((): tf.Tensor => {
-            return model.execute(tf.tensor([], [0, 96, 96, 3]), "labels") as tf.Tensor;
-        });
-        const labels: string[] = String.fromCharCode(...Array.from(labelsTensor.dataSync())).split(",");
-        labelsTensor.dispose();
-        return(this.modelData = { model, labels });
+        return (this.modelData = { model, labels });
     }
 }
