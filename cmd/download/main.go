@@ -1,8 +1,8 @@
 package main
 
 import (
-	"crypto/md5"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -10,12 +10,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"sync"
 
-	"github.com/sugyan/shogi-dataset/tfrecord"
 	"github.com/sugyan/shogi-dataset/web/entity"
-	"github.com/tensorflow/tensorflow/tensorflow/go/core/example"
+)
+
+const (
+	targetTraining   = "training"
+	targetValidation = "validation"
+	targetTesting    = "testing"
 )
 
 var (
@@ -59,9 +64,9 @@ var (
 )
 
 type result struct {
-	uid  uint64
-	data []byte
-	err  error
+	data        []byte
+	label, name string
+	err         error
 }
 
 func init() {
@@ -122,21 +127,15 @@ func writeLabels() error {
 }
 
 func write(resultCh <-chan *result) error {
-	training, err := os.Create(filepath.Join("data", "training.tfrecord"))
-	if err != nil {
-		return err
+	for _, target := range []string{targetTraining, targetValidation, targetTesting} {
+		for _, label := range labels {
+			err := os.MkdirAll(filepath.Join("data", target, label), os.ModePerm)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
-	defer training.Close()
-	validation, err := os.Create(filepath.Join("data", "validation.tfrecord"))
-	if err != nil {
-		return err
-	}
-	defer validation.Close()
-	testing, err := os.Create(filepath.Join("data", "testing.tfrecord"))
-	if err != nil {
-		return err
-	}
-	defer testing.Close()
+
 loop:
 	for {
 		select {
@@ -147,22 +146,28 @@ loop:
 			if result.err != nil {
 				return result.err
 			}
-			value := result.uid % 100
+			b, err := hex.DecodeString(result.name)
+			if err != nil {
+				return err
+			}
+			var (
+				targetPath string
+				filename   = result.name + ".jpg"
+				value      = binary.BigEndian.Uint64(b) % 100
+			)
 			if value < 80 {
-				log.Printf("write to training.tfrecord (%v bytes)", len(result.data))
-				if _, err := training.Write(result.data); err != nil {
-					return err
-				}
+				targetPath = filepath.Join("data", targetTraining, result.label, filename)
 			} else if value < 90 {
-				log.Printf("write to validation.tfrecord (%v bytes)", len(result.data))
-				if _, err := validation.Write(result.data); err != nil {
-					return err
-				}
+				targetPath = filepath.Join("data", targetValidation, result.label, filename)
 			} else {
-				log.Printf("write to testing.tfrecord (%v bytes)", len(result.data))
-				if _, err := testing.Write(result.data); err != nil {
-					return err
-				}
+				targetPath = filepath.Join("data", targetTesting, result.label, filename)
+			}
+			file, err := os.Create(targetPath)
+			if err != nil {
+				return err
+			}
+			if _, err := file.Write(result.data); err != nil {
+				return err
 			}
 		}
 	}
@@ -214,20 +219,17 @@ func getImages() (<-chan *entity.ImageResult, error) {
 
 func worker(imagesCh <-chan *entity.ImageResult, resultCh chan<- *result) {
 	for image := range imagesCh {
-		data, err := encode(image)
+		data, err := download(image)
 		if err != nil {
 			resultCh <- &result{err: err}
 			break
 		} else {
-			hash := md5.New()
-			hash.Write([]byte(image.ImageURL))
-			uid := binary.BigEndian.Uint64(hash.Sum(nil))
-			resultCh <- &result{uid: uid, data: data}
+			resultCh <- &result{data: data, label: image.Label, name: path.Base(image.ImageURL)}
 		}
 	}
 }
 
-func encode(image *entity.ImageResult) ([]byte, error) {
+func download(image *entity.ImageResult) ([]byte, error) {
 	log.Printf("download %s", image.ImageURL)
 	resp, err := http.Get(image.ImageURL)
 	if err != nil {
@@ -235,29 +237,5 @@ func encode(image *entity.ImageResult) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	e := &example.Example{
-		Features: &example.Features{
-			Feature: map[string]*example.Feature{
-				"image": {
-					Kind: &example.Feature_BytesList{
-						BytesList: &example.BytesList{
-							Value: [][]byte{data},
-						},
-					},
-				},
-				"label": {
-					Kind: &example.Feature_Int64List{
-						Int64List: &example.Int64List{
-							Value: []int64{labelIDMap[image.Label]},
-						},
-					},
-				},
-			},
-		},
-	}
-	return tfrecord.Marshal(e)
+	return ioutil.ReadAll((resp.Body))
 }
