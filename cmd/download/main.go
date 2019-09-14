@@ -20,7 +20,7 @@ import (
 const (
 	targetTraining   = "training"
 	targetValidation = "validation"
-	targetTesting    = "testing"
+	targetTest       = "test"
 )
 
 var (
@@ -127,7 +127,7 @@ func writeLabels() error {
 }
 
 func write(resultCh <-chan *result) error {
-	for _, target := range []string{targetTraining, targetValidation, targetTesting} {
+	for _, target := range []string{targetTraining, targetValidation, targetTest} {
 		for _, label := range labels {
 			err := os.MkdirAll(filepath.Join("data", target, label), os.ModePerm)
 			if err != nil {
@@ -160,7 +160,7 @@ loop:
 			} else if value < 90 {
 				targetPath = filepath.Join("data", targetValidation, result.label, filename)
 			} else {
-				targetPath = filepath.Join("data", targetTesting, result.label, filename)
+				targetPath = filepath.Join("data", targetTest, result.label, filename)
 			}
 			file, err := os.Create(targetPath)
 			if err != nil {
