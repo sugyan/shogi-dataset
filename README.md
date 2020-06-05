@@ -1,4 +1,3 @@
-
 # shogi-dataset
 
 ## Development
